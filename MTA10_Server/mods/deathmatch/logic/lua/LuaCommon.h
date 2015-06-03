@@ -93,3 +93,12 @@ struct SLuaDebugInfo
     int         iLine;
     int         infoType;
 };
+
+// LuaJIT wrapper for lua_getmainstate
+inline lua_State* lua_getmainstate(lua_State* luaVM)
+{
+    lua_getfield(luaVM, LUA_REGISTRYINDEX, "lua.mainstate");
+    lua_State* mainstate = reinterpret_cast<lua_State*> (lua_touserdata(luaVM, -1));
+    lua_pop(luaVM, 1);
+    return mainstate;
+}
