@@ -34,7 +34,7 @@ CC= gcc
 # to slow down the C part by not omitting it. Debugging, tracebacks and
 # unwinding are not affected -- the assembler part has frame unwind
 # information and GCC emits it where needed (x64) or with -g (see CCDEBUG).
-CCOPT= -O2 -fomit-frame-pointer
+CCOPT= -O2 -fomit-frame-pointer -fPIC
 # Use this if you want to generate a smaller binary (but it's slower):
 #CCOPT= -Os -fomit-frame-pointer
 # Note: it's no longer recommended to use -O3 with GCC 4.x.
@@ -85,7 +85,7 @@ BUILDMODE= mixed
 ##############################################################################
 # Enable/disable these features as needed, but make sure you force a full
 # recompile with "make clean", followed by "make".
-XCFLAGS= -fPIC
+XCFLAGS=
 #
 # Permanently disable the FFI extension to reduce the size of the LuaJIT
 # executable. But please consider that the FFI library is compiled-in,
@@ -248,9 +248,6 @@ ifneq (,$(findstring LJ_TARGET_PS3 1,$(TARGET_TESTARCH)))
   TARGET_XCFLAGS+= -DLUAJIT_USE_SYSMALLOC
   TARGET_XLIBS+= -lpthread
 endif
-ifneq (,$(findstring LJ_NO_UNWIND 1,$(TARGET_TESTARCH)))
-  TARGET_ARCH+= -DLUAJIT_NO_UNWIND
-endif
 
 TARGET_XCFLAGS+= $(CCOPT_$(TARGET_LJARCH))
 TARGET_ARCH+= $(patsubst %,-DLUAJIT_TARGET=LUAJIT_ARCH_%,$(TARGET_LJARCH))
@@ -405,6 +402,10 @@ ifeq (,$(findstring LJ_ABI_SOFTFP 1,$(TARGET_TESTARCH)))
 else
   TARGET_ARCH+= -DLJ_ABI_SOFTFP=1
 endif
+ifneq (,$(findstring LJ_NO_UNWIND 1,$(TARGET_TESTARCH)))
+  DASM_AFLAGS+= -D NO_UNWIND
+  TARGET_ARCH+= -DLUAJIT_NO_UNWIND
+endif
 DASM_AFLAGS+= -D VER=$(subst LJ_ARCH_VERSION_,,$(filter LJ_ARCH_VERSION_%,$(subst LJ_ARCH_VERSION ,LJ_ARCH_VERSION_,$(TARGET_TESTARCH))))
 ifeq (Windows,$(TARGET_SYS))
   DASM_AFLAGS+= -D WIN
@@ -455,7 +456,7 @@ LJVM_O= lj_vm.o
 LJVM_BOUT= $(LJVM_S)
 LJVM_MODE= elfasm
 
-LJLIB_O= lib_base.o lib_math.o lib_bit.o lib_string.o lib_table.o lib_utf8.o \
+LJLIB_O= lib_base.o lib_math.o lib_bit.o lib_string.o lib_table.o \
 	 lib_io.o lib_os.o lib_package.o lib_debug.o lib_jit.o lib_ffi.o
 LJLIB_C= $(LJLIB_O:.o=.c)
 
