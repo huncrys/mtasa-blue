@@ -5,7 +5,7 @@ Multi Theft Auto: San Andreas
 
 ### What this fork is about
 
-This is a fork of [multitheftauto/mtasa-blue](https://github.com/multitheftauto/mtasa-blue/) using LuaJIT 2.1 instead of Lua 5.1. Stable (1.4.1) 64-bit server builds can be found [here](https://emobox.crys.hu/~mta/nightly).
+This is a fork of [multitheftauto/mtasa-blue](https://github.com/multitheftauto/mtasa-blue/) using LuaJIT 2.1 instead of Lua 5.1. Builds can be found [here](https://emobox.crys.hu/~mta/nightly).
 
 ### License
 
