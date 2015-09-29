@@ -120,6 +120,7 @@ public:
     LUA_DECLARE ( OutputDebugString );
     LUA_DECLARE ( OutputServerLog );
     LUA_DECLARE ( GetServerName );
+    LUA_DECLARE ( SetServerName );
     LUA_DECLARE ( GetServerHttpPort );
     LUA_DECLARE ( GetServerIP );
     LUA_DECLARE ( GetServerPassword );

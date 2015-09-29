@@ -57,6 +57,7 @@ public:
     bool                            Save                            ( void );
 
     inline const std::string&       GetServerName                   ( void )        { return m_strServerName; };
+    void                            SetServerName                   ( std::string strServerName );
     SString                         GetServerIP                     ( void );
     SString                         GetServerIPList                 ( void );
     unsigned short                  GetServerPort                   ( void );

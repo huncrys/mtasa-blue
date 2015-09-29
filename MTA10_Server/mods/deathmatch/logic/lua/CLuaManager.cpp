@@ -247,6 +247,7 @@ void CLuaManager::LoadCFunctions ( void )
     CLuaCFunctions::AddFunction ( "outputDebugString", CLuaFunctionDefs::OutputDebugString );
     CLuaCFunctions::AddFunction ( "outputServerLog", CLuaFunctionDefs::OutputServerLog );
     CLuaCFunctions::AddFunction ( "getServerName", CLuaFunctionDefs::GetServerName );
+    CLuaCFunctions::AddFunction ( "setServerName", CLuaFunctionDefs::SetServerName );
     CLuaCFunctions::AddFunction ( "getServerHttpPort", CLuaFunctionDefs::GetServerHttpPort );
     CLuaCFunctions::AddFunction ( "getServerPassword", CLuaFunctionDefs::GetServerPassword );
     CLuaCFunctions::AddFunction ( "setServerPassword", CLuaFunctionDefs::SetServerPassword );
