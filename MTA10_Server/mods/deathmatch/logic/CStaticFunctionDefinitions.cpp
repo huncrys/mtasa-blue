@@ -10974,6 +10974,17 @@ bool CStaticFunctionDefinitions::SetPlayerAnnounceValue ( CElement* pElement, co
 }
 
 
+bool CStaticFunctionDefinitions::SetServerName( const std::string strServerName )
+{
+    if ( strServerName != "" )
+    {
+        m_pMainConfig->SetServerName ( strServerName );
+        return true;
+    }
+    return false;
+}
+
+
 void CStaticFunctionDefinitions::ExecuteSQLCreateTable ( const std::string& strTable, const std::string& strDefinition )
 {
     m_pRegistry->CreateTable ( strTable, strDefinition );
