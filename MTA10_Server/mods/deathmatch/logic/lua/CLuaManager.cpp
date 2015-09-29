@@ -641,6 +641,7 @@ void CLuaManager::LoadCFunctions ( void )
     CLuaCFunctions::AddFunction ( "removeRuleValue", CLuaFunctionDefs::RemoveRuleValue );
     CLuaCFunctions::AddFunction ( "getPlayerAnnounceValue", CLuaFunctionDefs::GetPlayerAnnounceValue );
     CLuaCFunctions::AddFunction ( "setPlayerAnnounceValue", CLuaFunctionDefs::SetPlayerAnnounceValue );
+    CLuaCFunctions::AddFunction ( "setServerName", CLuaFunctionDefs::SetServerName );
 
     // Database funcs
     CLuaCFunctions::AddFunction ( "dbConnect", CLuaFunctionDefs::DbConnect );

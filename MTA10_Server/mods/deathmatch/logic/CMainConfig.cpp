@@ -877,6 +877,13 @@ bool CMainConfig::SetPassword ( const char* szPassword, bool bSave )
 }
 
 
+void CMainConfig::SetServerName ( std::string strServerName )
+{
+    m_strServerName = strServerName;
+    CLogger::LogPrintf ( "The Server Name has now been set to: %s\n", strServerName.c_str () );
+}
+
+
 bool CMainConfig::SetFPSLimit ( unsigned short usFPS, bool bSave )
 {
     if ( usFPS == 0 || ( usFPS >= 25 && usFPS <= 100 ) )

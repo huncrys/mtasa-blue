@@ -502,6 +502,7 @@ public:
     LUA_DECLARE ( RemoveRuleValue );
     LUA_DECLARE ( GetPlayerAnnounceValue );
     LUA_DECLARE ( SetPlayerAnnounceValue );
+    LUA_DECLARE ( SetServerName );
     LUA_DECLARE ( ResendPlayerModInfo );
 
     // Database funcs
