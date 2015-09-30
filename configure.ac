@@ -193,7 +193,7 @@ AC_LANG(C++)
 # Configure subdirectories where necessary
 #   NOTE: Put these on separate single lines due to a bug in autoconf
 #   http://readlist.com/lists/lists.sourceforge.net/mingw-users/2/12488.html
-AC_CONFIG_SUBDIRS([vendor/lua])
+#AC_CONFIG_SUBDIRS([vendor/luajit])
 AC_CONFIG_SUBDIRS([vendor/json-c])
 
 if test "x$HAVE_BUNDLED_SPARSEHASH" = "xyes" ; then
