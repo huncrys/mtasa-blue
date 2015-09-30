@@ -6,5 +6,5 @@ if WANT_SPARSEHASH
 SPARSEHASH_DIR = sparsehash/current
 endif
 
-SUBDIRS = tinyxml $(PCRE_DIR) pme ehs json-c lua $(SPARSEHASH_DIR)
+SUBDIRS = tinyxml $(PCRE_DIR) pme ehs json-c luajit $(SPARSEHASH_DIR)
 
