@@ -1,6 +1,6 @@
 ZIPDIR=$(srcdir)/../../vendor/zip/
-LUADIR=$(srcdir)/../../vendor/lua
-LUABDIR=$(builddir)/../../vendor/lua
+LUADIR=$(srcdir)/../../vendor/luajit
+LUABDIR=$(builddir)/../../vendor/luajit
 
 INCLUDES += -I$(srcdir)/logic/
 INCLUDES += -I$(srcdir)/../sdk/
