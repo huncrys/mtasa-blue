@@ -80,6 +80,7 @@ public:
     LUA_DECLARE(GetCommandHandlers);
 
     // Standard server functions
+    LUA_DECLARE(SetServerName);
     LUA_DECLARE(SetServerConfigSetting);
     static bool Shutdown(lua_State* luaVM, std::optional<std::string_view> maybeReason, std::optional<int> maybeExitCode);
 
