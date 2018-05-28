@@ -237,6 +237,7 @@ CAccount* CHTTPD::CheckAuthentication(HttpRequest* ipoHttpRequest)
                     if (strAccountName.compare(CONSOLE_ACCOUNT_NAME) != 0)
                     {
                         // Do IP check if required
+                        /*
                         if (!bSkipIpCheck && !g_pGame->GetAccountManager()->IsHttpLoginAllowed(account, ipoHttpRequest->GetAddress()))
                         {
                             if (m_WarnMessageTimer.Get() > 8000 || m_strWarnMessageForIp != ipoHttpRequest->GetAddress())
@@ -248,6 +249,7 @@ CAccount* CHTTPD::CheckAuthentication(HttpRequest* ipoHttpRequest)
                                                 ipoHttpRequest->GetAddress().c_str());
                             return m_pGuestAccount;
                         }
+                        */
 
                         // Handle initial login logging
                         std::lock_guard<std::mutex> guard(m_mutexLoggedInMap);
