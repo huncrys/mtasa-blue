@@ -21,7 +21,7 @@ project "Deathmatch"
 			"../../../vendor/zlib",
 			"../../../vendor/pcre",
 			"../../../vendor/json-c",
-			"../../../vendor/lua/src",
+			"../../../vendor/luajit/src",
 			"../../../Shared/gta",
 			"../../../Shared/mods/deathmatch/logic",
 			"../../../Shared/animation",
@@ -33,8 +33,9 @@ project "Deathmatch"
 		}
 
 	defines { "SDK_WITH_BCRYPT" }
+	libdirs { "../../../vendor/luajit/src" }
 	links {
-		"Lua_Server", "sqlite", "ehs", "cryptopp", "pme", "pcre", "json-c", "zip", "glob", "zlib", "blowfish_bcrypt",
+		"luajit", "sqlite", "ehs", "cryptopp", "pme", "pcre", "json-c", "zip", "glob", "zlib", "blowfish_bcrypt",
 	}
 
 	vpaths {
@@ -63,7 +64,7 @@ project "Deathmatch"
 	filter "system:not windows"
 		buildoptions { "-Wno-narrowing" } -- We should fix the warnings at some point
 		buildoptions { "-pthread" }
-		linkoptions { "-pthread" }
+		linkoptions { "-pthread -lluajit" }
 
 	filter "system:linux"
 		links { "rt" }
