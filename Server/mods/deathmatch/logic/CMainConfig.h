@@ -50,6 +50,7 @@ public:
     bool Save();
 
     const std::string& GetServerName() { return m_strServerName; };
+    void               SetServerName(std::string strServerName);
     SString            GetServerIP();
     SString            GetServerIPList();
     unsigned short     GetServerPort();
