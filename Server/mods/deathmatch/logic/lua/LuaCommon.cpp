@@ -257,28 +257,28 @@ void lua_pushvector(lua_State* luaVM, const CVector4D& vector)
 {
     CLuaVector4D* pVector = new CLuaVector4D(vector);
     lua_pushobject(luaVM, "Vector4", (void*)reinterpret_cast<unsigned int*>(pVector->GetScriptID()), true);
-    lua_addtotalbytes(luaVM, LUA_GC_EXTRA_BYTES);
+    //lua_addtotalbytes(luaVM, LUA_GC_EXTRA_BYTES);
 }
 
 void lua_pushvector(lua_State* luaVM, const CVector& vector)
 {
     CLuaVector3D* pVector = new CLuaVector3D(vector);
     lua_pushobject(luaVM, "Vector3", (void*)reinterpret_cast<unsigned int*>(pVector->GetScriptID()), true);
-    lua_addtotalbytes(luaVM, LUA_GC_EXTRA_BYTES);
+    //lua_addtotalbytes(luaVM, LUA_GC_EXTRA_BYTES);
 }
 
 void lua_pushvector(lua_State* luaVM, const CVector2D& vector)
 {
     CLuaVector2D* pVector = new CLuaVector2D(vector);
     lua_pushobject(luaVM, "Vector2", (void*)reinterpret_cast<unsigned int*>(pVector->GetScriptID()), true);
-    lua_addtotalbytes(luaVM, LUA_GC_EXTRA_BYTES);
+    //lua_addtotalbytes(luaVM, LUA_GC_EXTRA_BYTES);
 }
 
 void lua_pushmatrix(lua_State* luaVM, const CMatrix& matrix)
 {
     CLuaMatrix* pMatrix = new CLuaMatrix(matrix);
     lua_pushobject(luaVM, "Matrix", (void*)reinterpret_cast<unsigned int*>(pMatrix->GetScriptID()), true);
-    lua_addtotalbytes(luaVM, LUA_GC_EXTRA_BYTES);
+    //lua_addtotalbytes(luaVM, LUA_GC_EXTRA_BYTES);
 }
 
 CLuaMain& lua_getownercluamain(lua_State* L)
