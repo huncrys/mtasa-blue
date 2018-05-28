@@ -310,6 +310,30 @@ int CLuaFunctionDefs::Get(lua_State* luaVM)
     return 1;
 }
 
+int CLuaFunctionDefs::SetServerName(lua_State* luaVM)
+{
+    CScriptArgReader argStream(luaVM);
+    SString strServerName;
+    
+    argStream.ReadString(strServerName);
+    
+    if (!argStream.HasErrors())
+    {
+        if (CStaticFunctionDefinitions::SetServerName(strServerName))
+        {
+            lua_pushboolean(luaVM, true);
+            return 1;
+        }
+    }
+    else
+    {
+        m_pScriptDebugging->LogCustom(luaVM, argStream.GetFullErrorMessage());
+    }
+
+    lua_pushboolean(luaVM, false);
+    return 1;
+}
+
 int CLuaFunctionDefs::SetServerConfigSetting(lua_State* luaVM)
 {
     //  bool setServerConfigSetting ( string name, string value [, bool save = false ] )
