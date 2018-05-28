@@ -417,3 +417,7 @@ utils/DXFiles/
 !*.exe
 utils/vswhere.exe
 *.generated.h
+
+# LuaJIT
+!vendor/luajit/Makefile
+!vendor/luajit/src/Makefile

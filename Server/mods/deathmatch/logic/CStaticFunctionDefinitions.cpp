@@ -10307,7 +10307,7 @@ unsigned int CStaticFunctionDefinitions::GetMaxPlayers()
 
 bool CStaticFunctionDefinitions::SetMaxPlayers(unsigned int uiMax)
 {
-    if (uiMax > m_pMainConfig->GetHardMaxPlayers())
+    if (uiMax > MAX_PLAYER_COUNT)
         return false;
     m_pMainConfig->SetSoftMaxPlayers(uiMax);
     g_pNetServer->SetMaximumIncomingConnections(uiMax);
@@ -11400,6 +11400,16 @@ bool CStaticFunctionDefinitions::SetPlayerAnnounceValue(CElement* pElement, cons
         CPlayer* pPlayer = static_cast<CPlayer*>(pElement);
 
         pPlayer->SetAnnounceValue(strKey, strValue);
+        return true;
+    }
+    return false;
+}
+
+bool CStaticFunctionDefinitions::SetServerName(const std::string strServerName)
+{
+    if (strServerName != "")
+    {
+        m_pMainConfig->SetServerName(strServerName);
         return true;
     }
     return false;

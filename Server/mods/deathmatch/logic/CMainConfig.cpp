@@ -783,19 +783,21 @@ bool CMainConfig::LoadExtended()
 
     RegisterCommand("say", CConsoleCommands::Say, false, "Usage: say <text>\nShow a message to all players on the server eg: say hello");
     RegisterCommand("teamsay", CConsoleCommands::TeamSay, false, "Usage: teamsay <test>\nSend a message to all players on the same team");
-    RegisterCommand("msg", CConsoleCommands::Msg, false, "Usage: msg <nick> <text>\nSend a message to a player eg: msg playername hello");
+    //RegisterCommand("msg", CConsoleCommands::Msg, false, "Usage: msg <nick> <text>\nSend a message to a player eg: msg playername hello");
     RegisterCommand("me", CConsoleCommands::Me, false, "Usage: me <text>\nShow a message to all players on the server, with your nick prepended");
-    RegisterCommand("nick", CConsoleCommands::Nick, false, "Usage: nick <old-nick> <new-nick>\nChange your ingame nickname");
+    //RegisterCommand("nick", CConsoleCommands::Nick, false, "Usage: nick <old-nick> <new-nick>\nChange your ingame nickname");
 
-    RegisterCommand("login", CConsoleCommands::LogIn, false, "Usage: login <accountname> <password>\nLogin to an account eg: login accountname password");
-    RegisterCommand("logout", CConsoleCommands::LogOut, false, "Log out of the current account");
-    RegisterCommand("chgmypass", CConsoleCommands::ChgMyPass, false, "Usage: chgmypass <oldpass> <newpass>\nChange your password eg: chgmypass oldpw newpw");
+    //RegisterCommand("login", CConsoleCommands::LogIn, false, "Usage: login <accountname> <password>\nLogin to an account eg: login accountname password");
+    //RegisterCommand("logout", CConsoleCommands::LogOut, false, "Log out of the current account");
+    //RegisterCommand("chgmypass", CConsoleCommands::ChgMyPass, false, "Usage: chgmypass <oldpass> <newpass>\nChange your password eg: chgmypass oldpw newpw");
 
+    /*
     RegisterCommand("addaccount", CConsoleCommands::AddAccount, false,
                     "Usage: addaccount <accountname> <password>\nAdd an account eg: addaccount accountname password");
     RegisterCommand("delaccount", CConsoleCommands::DelAccount, false, "Usage: delaccount <accountname>\nDelete an account eg: delaccount accountname");
     RegisterCommand("chgpass", CConsoleCommands::ChgPass, false,
                     "Usage: chgpass <accountname> <password>\nChange an accounts password eg: chgpass account newpw");
+    */
     RegisterCommand("shutdown", CConsoleCommands::Shutdown, false, "Usage: shutdown <reason>\nShutdown the server eg: shutdown put reason here");
 
     RegisterCommand("aexec", CConsoleCommands::AExec, false,
@@ -988,6 +990,12 @@ bool CMainConfig::SetPassword(const char* szPassword, bool bSave)
     }
 
     return true;
+}
+
+void CMainConfig::SetServerName(std::string strServerName)
+{
+    m_strServerName = strServerName;
+    CLogger::LogPrintf("The Server Name has now been set to: %s\n", strServerName.c_str());
 }
 
 bool CMainConfig::SetFPSLimit(unsigned short usFPS, bool bSave)
