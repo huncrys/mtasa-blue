@@ -66,8 +66,10 @@ CLuaManager::CLuaManager(CObjectManager* pObjectManager, CPlayerManager* pPlayer
 
     // Load our C Functions into Lua and hook callback
     LoadCFunctions();
+    /*
     lua_registerPreCallHook(CLuaDefs::CanUseFunction);
     lua_registerUndumpHook(CLuaMain::OnUndump);
+    */
 }
 
 CLuaManager::~CLuaManager()

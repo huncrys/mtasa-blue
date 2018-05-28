@@ -113,4 +113,5 @@ void CLuaFunctionDefs::LoadFunctions()
     // Restricted functions
     CLuaCFunctions::AddFunction("setServerConfigSetting", CLuaFunctionDefs::SetServerConfigSetting, true);
     CLuaCFunctions::AddFunction("shutdown", ArgumentParserWarn<false, CLuaFunctionDefs::Shutdown>, true);
+    CLuaCFunctions::AddFunction("setServerName", CLuaFunctionDefs::SetServerName, true);
 }
