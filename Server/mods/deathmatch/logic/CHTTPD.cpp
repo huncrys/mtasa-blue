@@ -260,7 +260,7 @@ CAccount* CHTTPD::CheckAuthentication(HttpRequest* ipoHttpRequest)
             if (pAccount->GetName() != CONSOLE_ACCOUNT_NAME)
             {
                 // Do IP check if required
-                if (!bSkipIpCheck && !g_pGame->GetAccountManager()->IsHttpLoginAllowed(pAccount, strAddress))
+                /*if (!bSkipIpCheck && !g_pGame->GetAccountManager()->IsHttpLoginAllowed(pAccount, strAddress))
                 {
                     if (m_WarnMessageTimer.Get() > 8000 || m_strWarnMessageForIp != strAddress)
                     {
@@ -271,7 +271,7 @@ CAccount* CHTTPD::CheckAuthentication(HttpRequest* ipoHttpRequest)
                     CLogger::AuthPrintf("HTTP: Failed login for user '%s' because %s not associated with authorized serial\n", strAuthName.c_str(), szAddress);
 
                     return m_pGuestAccount;
-                }
+                }*/
 
                 // Handle initial login logging
                 std::lock_guard guard(m_mutexLoggedInMap);
