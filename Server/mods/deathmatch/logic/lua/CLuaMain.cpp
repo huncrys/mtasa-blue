@@ -201,13 +201,19 @@ void CLuaMain::Initialize()
     assert(!m_luaVM);
 
     // Create a new VM
-    m_luaVM = lua_open(this);
+    m_luaVM = lua_open();
+    lua_pushlightuserdata(m_luaVM, m_luaVM);
+    lua_setfield(m_luaVM, LUA_REGISTRYINDEX, "lua.mainstate");
+    lua_pushlightuserdata(m_luaVM, this);
+    lua_setfield(m_luaVM, LUA_REGISTRYINDEX, "lua.mtasaowner");
     m_pLuaManager->OnLuaMainOpenVM(this, m_luaVM);
 
     // Set the instruction count hook
     lua_sethook(m_luaVM, InstructionCountHook, LUA_MASKCOUNT, HOOK_INSTRUCTION_COUNT);
 
     // Load LUA libraries
+    luaL_openlibs(m_luaVM);
+    /*
     luaopen_base(m_luaVM);
     luaopen_math(m_luaVM);
     luaopen_string(m_luaVM);
@@ -215,9 +221,10 @@ void CLuaMain::Initialize()
     luaopen_debug(m_luaVM);
     luaopen_utf8(m_luaVM);
     luaopen_os(m_luaVM);
+    */
 
     // Initialize security restrictions. Very important to prevent lua trojans and viruses!
-    InitSecurity();
+    //InitSecurity();
 
     // Registering C functions
     CLuaCFunctions::RegisterFunctionsWithVM(m_luaVM);
