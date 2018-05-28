@@ -97,6 +97,7 @@ public:
     LUA_DECLARE(GetCommandHandlers);
 
     // Standard server functions
+    LUA_DECLARE(SetServerName);
     LUA_DECLARE(SetServerConfigSetting);
     LUA_DECLARE(shutdown);
 

@@ -32,8 +32,10 @@ CLuaManager::CLuaManager(CObjectManager* pObjectManager, CPlayerManager* pPlayer
 
     // Load our C Functions into Lua and hook callback
     LoadCFunctions();
+    /*
     lua_registerPreCallHook(CLuaDefs::CanUseFunction);
     lua_registerUndumpHook(CLuaMain::OnUndump);
+    */
 
 #ifdef MTA_DEBUG
     // Check rounding in case json is updated
@@ -276,6 +278,7 @@ void CLuaManager::LoadCFunctions()
     // Restricted functions
     CLuaCFunctions::AddFunction("setServerConfigSetting", CLuaFunctionDefs::SetServerConfigSetting, true);
     CLuaCFunctions::AddFunction("shutdown", CLuaFunctionDefs::shutdown, true);
+    CLuaCFunctions::AddFunction("setServerName", CLuaFunctionDefs::SetServerName, true);
 
     // Load the functions from our classes
     CLuaACLDefs::LoadFunctions();
