@@ -60,6 +60,8 @@ build [amd64]:
   script:
     - /docker-entrypoint.sh
     - mv "$OUTPUT_DIR/mta-server64" "$OUTPUT_DIR/mta-server"
+  tags:
+    - platform:linux/amd64
 
 package [amd64]:
   stage: package
@@ -94,27 +96,33 @@ package [amd64]:
     - echo "PACKAGE_NAME=$TARNAME" >> .env
     - echo "PACKAGE_VERSION=$VER" >> .env
     - echo "PACKAGE_REVISION=$REV" >> .env
+  tags:
+    - platform:linux/amd64
 
 upload [amd64]:
   stage: upload
   image: curlimages/curl:latest
   dependencies:
     - package [amd64]
+  variables:
+    GIT_STRATEGY: none
   script:
     - >-
       curl
       --header "JOB-TOKEN: ${CI_JOB_TOKEN}"
       --upload-file "${PACKAGE_NAME}"
-      "${PACKAGE_REGISTRY_URL}/${PACKAGE_VERSION}-r${PACKAGE_REVISION}/${PACKAGE_NAME}"
+      "${PACKAGE_REGISTRY_URL}/${PACKAGE_VERSION}-r${PACKAGE_REVISION}-${CI_PIPELINE_IID}/${PACKAGE_NAME}"
 
 release [amd64]:
   stage: release
   image: registry.gitlab.com/gitlab-org/release-cli:latest
   dependencies:
     - package [amd64]
+  variables:
+    GIT_STRATEGY: none
   script:
     - >-
       release-cli create
-      --name "v${PACKAGE_VERSION}-r${PACKAGE_REVISION}"
-      --tag-name "v${PACKAGE_VERSION}-r${PACKAGE_REVISION}"
-      --assets-link "{\"name\":\"${PACKAGE_NAME}\",\"direct_asset_path\":\"/${PACKAGE_NAME}\",\"filepath\":\"/${PACKAGE_NAME}\",\"url\":\"${PACKAGE_REGISTRY_URL}/${PACKAGE_VERSION}-r${PACKAGE_REVISION}/${PACKAGE_NAME}\"}"
+      --name "v${PACKAGE_VERSION}-r${PACKAGE_REVISION}-${CI_PIPELINE_IID}"
+      --tag-name "v${PACKAGE_VERSION}-r${PACKAGE_REVISION}-${CI_PIPELINE_IID}"
+      --assets-link "{\"name\":\"${PACKAGE_NAME}\",\"direct_asset_path\":\"/${PACKAGE_NAME}\",\"url\":\"${PACKAGE_REGISTRY_URL}/${PACKAGE_VERSION}-r${PACKAGE_REVISION}-${CI_PIPELINE_IID}/${PACKAGE_NAME}\"}"
