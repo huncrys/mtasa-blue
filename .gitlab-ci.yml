@@ -25,7 +25,9 @@ prepare [amd64]:
     GIT_STRATEGY: none
   script:
     - set -e
-    - FILENAME=$(curl --no-progress-meter -LOJ "$LATEST_URL" | cut -d"'" -f2)
+    - curl --no-progress-meter -LOJ "$LATEST_URL"
+    - FILENAME=$(ls multitheftauto_linux* | head -n 1)
+    - test -f "${FILENAME}"
     - tar xvaf "${FILENAME}" --strip-components=1 --one-top-level="${OUTPUT_DIR}" --wildcards "*/x64/net.so"
     - VER=${FILENAME#*-}
     - VER=${VER/-*}
