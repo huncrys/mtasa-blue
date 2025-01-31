@@ -38,6 +38,8 @@ prepare [amd64]:
     - echo "BUILD_OS=linux" >> .env
     - echo "BUILD_ARCHITECTURE=x64" >> .env
     - echo "BUILD_CONFIG=release" >> .env
+  rules:
+    - if: $CI_COMMIT_BRANCH
 
 build [amd64]:
   stage: build
@@ -62,6 +64,8 @@ build [amd64]:
     - mv "$OUTPUT_DIR/mta-server64" "$OUTPUT_DIR/mta-server"
   tags:
     - platform:linux/amd64
+  rules:
+    - if: $CI_COMMIT_BRANCH
 
 package [amd64]:
   stage: package
@@ -98,6 +102,8 @@ package [amd64]:
     - echo "PACKAGE_REVISION=$REV" >> .env
   tags:
     - platform:linux/amd64
+  rules:
+    - if: $CI_COMMIT_BRANCH
 
 upload [amd64]:
   stage: upload
@@ -112,6 +118,8 @@ upload [amd64]:
       --header "JOB-TOKEN: ${CI_JOB_TOKEN}"
       --upload-file "${PACKAGE_NAME}"
       "${PACKAGE_REGISTRY_URL}/${PACKAGE_VERSION}-r${PACKAGE_REVISION}-${CI_PIPELINE_IID}/${PACKAGE_NAME}"
+  rules:
+    - if: $CI_COMMIT_BRANCH
 
 release [amd64]:
   stage: release
@@ -126,3 +134,5 @@ release [amd64]:
       --name "v${PACKAGE_VERSION}-r${PACKAGE_REVISION}-${CI_PIPELINE_IID}"
       --tag-name "v${PACKAGE_VERSION}-r${PACKAGE_REVISION}-${CI_PIPELINE_IID}"
       --assets-link "{\"name\":\"${PACKAGE_NAME}\",\"direct_asset_path\":\"/${PACKAGE_NAME}\",\"url\":\"${PACKAGE_REGISTRY_URL}/${PACKAGE_VERSION}-r${PACKAGE_REVISION}-${CI_PIPELINE_IID}/${PACKAGE_NAME}\"}"
+  rules:
+    - if: $CI_COMMIT_BRANCH
