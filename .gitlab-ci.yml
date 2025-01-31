@@ -13,7 +13,7 @@ variables:
 prepare [amd64]:
   stage: prepare
   image:
-    name: ghcr.io/multitheftauto/mtasa-blue-build:latest
+    name: ${CI_REGISTRY_IMAGE}/build:latest
     entrypoint: [""]
   artifacts:
     paths:
@@ -44,7 +44,7 @@ prepare [amd64]:
 build [amd64]:
   stage: build
   image:
-    name: ghcr.io/multitheftauto/mtasa-blue-build:latest
+    name: ${CI_REGISTRY_IMAGE}/build:latest
     entrypoint: [""]
   dependencies:
     - prepare [amd64]
@@ -70,7 +70,7 @@ build [amd64]:
 package [amd64]:
   stage: package
   image:
-    name: ghcr.io/multitheftauto/mtasa-blue-build:latest
+    name: ${CI_REGISTRY_IMAGE}/build:latest
     entrypoint: [""]
   dependencies:
     - prepare [amd64]
