@@ -13,4 +13,4 @@ if [ ! -f ./premake5.lua ]; then
 fi
 
 # Start manual building
-./linux-build.sh --arch=$BUILD_ARCHITECTURE --config=$BUILD_CONFIG
+exec ./linux-build.sh --arch=$BUILD_ARCHITECTURE --config=$BUILD_CONFIG

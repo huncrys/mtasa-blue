@@ -29,4 +29,4 @@ RUN chmod +x /docker-entrypoint.sh
 COPY utils/compat /compat
 
 # Set entrypoint
-ENTRYPOINT bash /docker-entrypoint.sh
+ENTRYPOINT ["/docker-entrypoint.sh"]
