@@ -1,0 +1,120 @@
+stages:
+  - prepare
+  - build
+  - package
+  - upload
+  - release
+
+variables:
+  PACKAGE_REGISTRY_URL: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/mtasa-blue"
+  OUTPUT_DIR: Bin/server
+  BUILD_OVERRIDES: Shared/build_overrides.h
+
+prepare [amd64]:
+  stage: prepare
+  image:
+    name: ghcr.io/multitheftauto/mtasa-blue-build:latest
+    entrypoint: [""]
+  artifacts:
+    paths:
+      - $OUTPUT_DIR
+    reports:
+      dotenv: .env
+  variables:
+    LATEST_URL: https://nightly.multitheftauto.com/?multitheftauto_linux_x64-1.6-latest
+    GIT_STRATEGY: none
+  script:
+    - set -e
+    - FILENAME=$(curl --no-progress-meter -LOJ "$LATEST_URL" | cut -d"'" -f2)
+    - tar xvaf "${FILENAME}" --strip-components=1 --one-top-level="${OUTPUT_DIR}" --wildcards "*/x64/net.so"
+    - VER=${FILENAME#*-}
+    - VER=${VER/-*}
+    - REV=${FILENAME#*-full_rc-}
+    - REV=${REV#*-rc-}
+    - REV=${REV%-*}
+    - REV=${REV%%.*}
+    - echo "NET_VERSION=$VER" >> .env
+    - echo "NET_REVISION=$REV" >> .env
+    - echo "BUILD_OS=linux" >> .env
+    - echo "BUILD_ARCHITECTURE=x64" >> .env
+    - echo "BUILD_CONFIG=release" >> .env
+
+build [amd64]:
+  stage: build
+  image:
+    name: ghcr.io/multitheftauto/mtasa-blue-build:latest
+    entrypoint: [""]
+  dependencies:
+    - prepare [amd64]
+  artifacts:
+    paths:
+      - $OUTPUT_DIR
+  before_script:
+    - |
+      cat > "Shared/build_overrides.h" <<EOF
+      #undef MTASA_VERSION_TYPE
+      #undef MTASA_VERSION_BUILD
+      #define MTASA_VERSION_TYPE VERSION_TYPE_RELEASE
+      #define MTASA_VERSION_BUILD $NET_REVISION
+      EOF
+  script:
+    - /docker-entrypoint.sh
+    - mv "$OUTPUT_DIR/mta-server64" "$OUTPUT_DIR/mta-server"
+
+package [amd64]:
+  stage: package
+  image:
+    name: ghcr.io/multitheftauto/mtasa-blue-build:latest
+    entrypoint: [""]
+  dependencies:
+    - prepare [amd64]
+    - build [amd64]
+  artifacts:
+    paths:
+      - mtasa-*.tar.xz
+    reports:
+      dotenv: .env
+  variables:
+    GIT_STRATEGY: none
+  script:
+    - cd "$OUTPUT_DIR"
+    - TAG=$(./mta-server --version || exit 0)
+    - TAG=${TAG#* v}
+    - TAG=${TAG/-*-/-}
+    - REV=${TAG#*-}
+    - REV=${REV:-NET_REVISION}
+    - VER=${TAG%-*}
+    - VER=${VER:-NET_VERSION}
+    - TARNAME=mtasa-$VER-r$REV.tar.xz
+    - strip mta-server
+    - chmod 755 x64 mta-server
+    - chmod 644 x64/*.so 
+    - tar --owner=0 --group=0 -cvaf "$CI_PROJECT_DIR/$TARNAME" mta-server x64
+    - cd "$CI_PROJECT_DIR"
+    - echo "PACKAGE_NAME=$TARNAME" >> .env
+    - echo "PACKAGE_VERSION=$VER" >> .env
+    - echo "PACKAGE_REVISION=$REV" >> .env
+
+upload [amd64]:
+  stage: upload
+  image: curlimages/curl:latest
+  dependencies:
+    - package [amd64]
+  script:
+    - >-
+      curl
+      --header "JOB-TOKEN: ${CI_JOB_TOKEN}"
+      --upload-file "${PACKAGE_NAME}"
+      "${PACKAGE_REGISTRY_URL}/${PACKAGE_VERSION}-r${PACKAGE_REVISION}/${PACKAGE_NAME}"
+
+release [amd64]:
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  dependencies:
+    - package [amd64]
+  script:
+    - >-
+      release-cli create
+      --name "v${PACKAGE_VERSION}-r${PACKAGE_REVISION}"
+      --tag-name "v${PACKAGE_VERSION}-r${PACKAGE_REVISION}"
+      --assets-link "{\"name\":\"${PACKAGE_NAME}\",\"direct_asset_path\":\"/${PACKAGE_NAME}\",\"filepath\":\"/${PACKAGE_NAME}\",\"url\":\"${PACKAGE_REGISTRY_URL}/${PACKAGE_VERSION}-r${PACKAGE_REVISION}/${PACKAGE_NAME}\"}"
