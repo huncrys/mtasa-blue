@@ -134,7 +134,7 @@ release [$[[ inputs.arch]]]:
     - |
       set --
       for package in *; do
-        set -- "$@" --assets-link "{\"name\":\"${package}\",\"direct_asset_path\":\"/${package/-*}.tar.${package##*.}\",\"url\":\"${PACKAGE_REGISTRY_URL}/${NET_VERSION}-r${NET_REVISION}-${CI_PIPELINE_IID}/${PACKAGE}.tar.gz\",\"link_type\":\"package\"}"
+        set -- "$@" --assets-link "{\"name\":\"${package}\",\"direct_asset_path\":\"/${package/-*}.tar.${package##*.}\",\"url\":\"${PACKAGE_REGISTRY_URL}/${NET_VERSION}-r${NET_REVISION}-${CI_PIPELINE_IID}/${package}\",\"link_type\":\"package\"}"
       done
     - >-
       release-cli create
