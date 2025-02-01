@@ -1,0 +1,145 @@
+spec:
+  inputs:
+    arch:
+      type: string
+      options:
+        - x64
+        - arm64
+    image:
+      type: string
+      options:
+        - latest
+        - arm64
+---
+prepare [$[[ inputs.arch]]]:
+  stage: prepare
+  image:
+    name: ${CI_REGISTRY_IMAGE}/build:$[[ inputs.image ]]
+    entrypoint: [""]
+  artifacts:
+    paths:
+      - $OUTPUT_DIR
+    reports:
+      dotenv: .env
+  variables:
+    LATEST_URL: https://nightly.multitheftauto.com/?multitheftauto_linux_$[[ inputs.arch ]]-1.6-latest
+    GIT_STRATEGY: none
+  script:
+    - set -e
+    - curl --no-progress-meter -LOJ "$LATEST_URL"
+    - FILENAME=$(ls multitheftauto_linux* | head -n 1)
+    - test -f "${FILENAME}"
+    - tar xvaf "${FILENAME}" --strip-components=1 --one-top-level="${OUTPUT_DIR}" --wildcards "*/net.so"
+    - VER=${FILENAME#*-}
+    - VER=${VER/-*}
+    - REV=${FILENAME#*-full_rc-}
+    - REV=${REV#*-rc-}
+    - REV=${REV%-*}
+    - REV=${REV%%.*}
+    - echo "PACKAGE=${FILENAME/.tar*}" >> .env
+    - echo "NET_VERSION=$VER" >> .env
+    - echo "NET_REVISION=$REV" >> .env
+    - echo "BUILD_OS=linux" >> .env
+    - echo "BUILD_ARCHITECTURE=$[[ inputs.arch ]]" >> .env
+    - echo "BUILD_CONFIG=release" >> .env
+  rules:
+    - if: $CI_COMMIT_BRANCH
+
+build [$[[ inputs.arch]]]:
+  stage: build
+  image:
+    name: ${CI_REGISTRY_IMAGE}/build:$[[ inputs.image ]]
+    entrypoint: [""]
+  dependencies:
+    - prepare [$[[ inputs.arch]]]
+  artifacts:
+    paths:
+      - $OUTPUT_DIR
+  before_script:
+    - |
+      cat > "Shared/build_overrides.h" <<EOF
+      #undef MTASA_VERSION_TYPE
+      #undef MTASA_VERSION_BUILD
+      #define MTASA_VERSION_TYPE VERSION_TYPE_RELEASE
+      #define MTASA_VERSION_BUILD $NET_REVISION
+      EOF
+  script:
+    - /docker-entrypoint.sh
+    - cp Server/output/* "$OUTPUT_DIR"
+  tags:
+    - platform:linux/amd64
+  rules:
+    - if: $CI_COMMIT_BRANCH
+
+package [$[[ inputs.arch]]]:
+  stage: package
+  image:
+    name: ${CI_REGISTRY_IMAGE}/build:$[[ inputs.image ]]
+    entrypoint: [""]
+  dependencies:
+    - prepare [$[[ inputs.arch]]]
+    - build [$[[ inputs.arch]]]
+  artifacts:
+    paths:
+      - packages
+  variables:
+    GIT_STRATEGY: none
+  script:
+    - cd "$OUTPUT_DIR"
+    - rm -rf mods/deathmatch/dumps
+    - strip mta-server*
+    - find . -name "*.so" -exec strip "{}" \;
+    - chmod 755 $[[ inputs.arch ]] mta-server*
+    - chmod 644 $[[ inputs.arch ]]/*.so
+    - cd "$CI_PROJECT_DIR"
+    - mv "$OUTPUT_DIR" "$PACKAGE"
+    - mkdir -p "${PACKAGE_DIR}"
+    - tar --owner=0 --group=0 -cvaf "${PACKAGE_DIR}/$PACKAGE.tar.gz" "$PACKAGE"
+    - tar --owner=0 --group=0 -cvaf "${PACKAGE_DIR}/$PACKAGE.tar.xz" "$PACKAGE"
+  tags:
+    - platform:linux/amd64
+  rules:
+    - if: $CI_COMMIT_BRANCH
+
+upload [$[[ inputs.arch]]]:
+  stage: upload
+  image: curlimages/curl:$[[ inputs.image ]]
+  dependencies:
+    - prepare [$[[ inputs.arch]]]
+    - package [$[[ inputs.arch]]]
+  variables:
+    GIT_STRATEGY: none
+  script:
+    - cd "${PACKAGE_DIR}"
+    - |
+      for package in *; do
+        curl \
+          --header "JOB-TOKEN: ${CI_JOB_TOKEN}" \
+          --upload-file "${package}" \
+          "${PACKAGE_REGISTRY_URL}/${NET_VERSION}-r${NET_REVISION}-${CI_PIPELINE_IID}/${package}"
+      done
+  rules:
+    - if: $CI_COMMIT_BRANCH
+
+release [$[[ inputs.arch]]]:
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:$[[ inputs.image ]]
+  dependencies:
+    - prepare [$[[ inputs.arch]]]
+    - package [$[[ inputs.arch]]]
+  variables:
+    GIT_STRATEGY: none
+  script:
+    - cd "${PACKAGE_DIR}"
+    - |
+      set --
+      for package in *; do
+        set -- "$@" --assets-link "{\"name\":\"${package}\",\"direct_asset_path\":\"/${package/-*}.tar.${package##*.}\",\"url\":\"${PACKAGE_REGISTRY_URL}/${NET_VERSION}-r${NET_REVISION}-${CI_PIPELINE_IID}/${PACKAGE}.tar.gz\",\"link_type\":\"package\"}"
+      done
+    - >-
+      release-cli create
+      --name "v${NET_VERSION}-r${NET_REVISION}-${CI_PIPELINE_IID}"
+      --tag-name "v${NET_VERSION}-r${NET_REVISION}-${CI_PIPELINE_IID}"
+      "$@"
+  rules:
+    - if: $CI_COMMIT_BRANCH
