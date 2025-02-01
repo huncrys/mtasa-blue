@@ -16,3 +16,31 @@ include:
     inputs:
       arch: x64
       image: latest
+  - local: .steps.gitlab-ci.yml
+    inputs:
+      arch: arm64
+      image: arm64
+
+release:
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  dependencies:
+    - prepare [x64]
+    - package [x64]
+    - package [arm64]
+  variables:
+    GIT_STRATEGY: none
+  script:
+    - cd "${PACKAGE_DIR}"
+    - |
+      set --
+      for package in *; do
+        set -- "$@" --assets-link "{\"name\":\"${package}\",\"direct_asset_path\":\"/${package/-*}.tar.${package##*.}\",\"url\":\"${PACKAGE_REGISTRY_URL}/${NET_VERSION}-r${NET_REVISION}-${CI_PIPELINE_IID}/${package}\",\"link_type\":\"package\"}"
+      done
+    - >-
+      release-cli create
+      --name "v${NET_VERSION}-r${NET_REVISION}-${CI_PIPELINE_IID}"
+      --tag-name "v${NET_VERSION}-r${NET_REVISION}-${CI_PIPELINE_IID}"
+      "$@"
+  rules:
+    - if: $CI_COMMIT_BRANCH

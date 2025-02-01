@@ -87,8 +87,8 @@ package [$[[ inputs.arch]]]:
   script:
     - cd "$OUTPUT_DIR"
     - rm -rf mods/deathmatch/dumps
-    - strip mta-server*
-    - find . -name "*.so" -exec strip "{}" \;
+    - ${GCC_PREFIX}strip mta-server*
+    - find . -name "*.so" -exec ${GCC_PREFIX}strip "{}" \;
     - chmod 755 $[[ inputs.arch ]] mta-server*
     - chmod 644 $[[ inputs.arch ]]/*.so
     - cd "$CI_PROJECT_DIR"
@@ -103,7 +103,7 @@ package [$[[ inputs.arch]]]:
 
 upload [$[[ inputs.arch]]]:
   stage: upload
-  image: curlimages/curl:$[[ inputs.image ]]
+  image: curlimages/curl:latest
   dependencies:
     - prepare [$[[ inputs.arch]]]
     - package [$[[ inputs.arch]]]
@@ -118,28 +118,5 @@ upload [$[[ inputs.arch]]]:
           --upload-file "${package}" \
           "${PACKAGE_REGISTRY_URL}/${NET_VERSION}-r${NET_REVISION}-${CI_PIPELINE_IID}/${package}"
       done
-  rules:
-    - if: $CI_COMMIT_BRANCH
-
-release [$[[ inputs.arch]]]:
-  stage: release
-  image: registry.gitlab.com/gitlab-org/release-cli:$[[ inputs.image ]]
-  dependencies:
-    - prepare [$[[ inputs.arch]]]
-    - package [$[[ inputs.arch]]]
-  variables:
-    GIT_STRATEGY: none
-  script:
-    - cd "${PACKAGE_DIR}"
-    - |
-      set --
-      for package in *; do
-        set -- "$@" --assets-link "{\"name\":\"${package}\",\"direct_asset_path\":\"/${package/-*}.tar.${package##*.}\",\"url\":\"${PACKAGE_REGISTRY_URL}/${NET_VERSION}-r${NET_REVISION}-${CI_PIPELINE_IID}/${package}\",\"link_type\":\"package\"}"
-      done
-    - >-
-      release-cli create
-      --name "v${NET_VERSION}-r${NET_REVISION}-${CI_PIPELINE_IID}"
-      --tag-name "v${NET_VERSION}-r${NET_REVISION}-${CI_PIPELINE_IID}"
-      "$@"
   rules:
     - if: $CI_COMMIT_BRANCH
