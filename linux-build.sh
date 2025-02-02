@@ -19,9 +19,6 @@ else
     : ${PREMAKE5:=utils/premake5}
     : ${BUILD_OS:=linux}
     : ${BUILD_ARCHITECTURE:=x64}
-    : ${AR:=ar}
-    : ${CC:=gcc}
-    : ${CXX:=g++}
 fi
 
 # Read script arguments
@@ -55,17 +52,28 @@ esac
 case $BUILD_ARCHITECTURE in
     64|x64)
         CONFIG=${BUILD_CONFIG}_x64
+        triplet=x86_64-linux-gnu-
     ;;
     arm)
         CONFIG=${BUILD_CONFIG}_${BUILD_ARCHITECTURE}
+        triplet=arm-linux-gnueabihf-
     ;;
     arm64)
         CONFIG=${BUILD_CONFIG}_${BUILD_ARCHITECTURE}
+        triplet=aarch64-linux-gnu-
     ;;
     *)
         echo "Error: Invalid build architecture" >&2
         exit 1
 esac
+
+# Cross toolchain defaults, same as utils/docker/docker-entrypoint.sh
+if [ "$(uname)" != "Darwin" ]; then
+    : ${GCC_PREFIX:=$triplet}
+    : ${AR:=${triplet}gcc-ar-15}
+    : ${CC:=${triplet}gcc-15}
+    : ${CXX:=${triplet}g++-15}
+fi
 
 echo "  OS = $BUILD_OS"
 echo "  CONFIG = $CONFIG"
@@ -85,4 +93,4 @@ else
 fi
 
 # Build!
-make -C Build/ -j ${NUM_CORES} AR=${AR} CC=${CC} CXX=${CXX} config=${CONFIG} all
+make -C Build/ -j ${NUM_CORES} AR=${AR} CC=${CC} CXX=${CXX} config=${CONFIG}
