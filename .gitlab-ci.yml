@@ -1,0 +1,46 @@
+stages:
+  - prepare
+  - build
+  - package
+  - upload
+  - release
+
+variables:
+  PACKAGE_REGISTRY_URL: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/mtasa-blue"
+  OUTPUT_DIR: "Bin/server"
+  BUILD_OVERRIDES: Shared/build_overrides.h
+  NUM_CORES: 6
+
+include:
+  - local: .steps.gitlab-ci.yml
+    inputs:
+      tag: latest
+  - local: .steps.gitlab-ci.yml
+    inputs:
+      tag: i386
+  - local: .steps.gitlab-ci.yml
+    inputs:
+      tag: arm64
+  - local: .steps.gitlab-ci.yml
+    inputs:
+      tag: armhf
+
+release:
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  dependencies:
+    - upload [latest]
+    - upload [i386]
+    - upload [arm64]
+    - upload [armhf]
+  variables:
+    GIT_STRATEGY: none
+  script:
+    - ASSETS="[$(cat assets/* | sed '/^$/d' | tr '\n' ',' | sed 's/,$//')]"
+    - >-
+      release-cli create
+      --name "release-${CI_PIPELINE_IID}"
+      --tag-name "release-${CI_PIPELINE_IID}"
+      --assets-link "${ASSETS}"
+  rules:
+    - if: $CI_COMMIT_BRANCH
