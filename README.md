@@ -4,7 +4,7 @@
 
 ## What this fork is about
 
-This is a fork of [multitheftauto/mtasa-blue](https://github.com/multitheftauto/mtasa-blue/) using LuaJIT 2.1 instead of Lua 5.1. Builds can be found [here](https://nightly.mtasa.hu).
+This is a fork of [multitheftauto/mtasa-blue](https://github.com/multitheftauto/mtasa-blue/) using LuaJIT 2.1 instead of Lua 5.1. Builds can be found [here](https://oaklab.hu/crys/mtasa-blue/-/releases).
 
 ## License
 
