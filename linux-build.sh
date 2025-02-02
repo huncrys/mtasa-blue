@@ -13,10 +13,12 @@ else
 fi
 
 # Number of cores
-if [ "$(uname)" == "Darwin" ]; then
-    NUM_CORES=$(sysctl -n hw.ncpu)
-else
-    NUM_CORES=$(grep -c ^processor /proc/cpuinfo)
+if [[ -z "$NUM_CORES" ]]; then
+    if [ "$(uname)" == "Darwin" ]; then
+        NUM_CORES=$(sysctl -n hw.ncpu)
+    else
+        NUM_CORES=$(grep -c ^processor /proc/cpuinfo)
+    fi
 fi
 
 # Read script arguments
@@ -78,4 +80,4 @@ else
 fi
 
 # Build!
-make -C Build/ -j ${NUM_CORES} AR=${AR} CC=${CC} CXX=${CXX} config=${CONFIG} all
+make -C Build/ -j ${NUM_CORES} AR=${AR} CC=${CC} CXX=${CXX} config=${CONFIG}
