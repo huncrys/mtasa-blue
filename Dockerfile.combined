@@ -1,0 +1,147 @@
+####################################################################################################
+
+FROM ubuntu:jammy AS base
+
+ENV BUILD_CONFIG=release \
+    DEBIAN_FRONTEND=noninteractive \
+    LUAJIT_CC=gcc-10 \
+    CI=true
+
+RUN sed -Ei 's/(archive|security)\.ubuntu\.com/repo.jztkft.hu/' /etc/apt/sources.list && \
+    apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends \
+        ca-certificates \
+        gzip \
+        make \
+        tar \
+        wget \
+        xz-utils \
+    && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+VOLUME /build
+WORKDIR /build
+
+CMD ["sh", "-c", "exec ./linux-build.sh --arch=$BUILD_ARCHITECTURE --config=$BUILD_CONFIG"]
+
+####################################################################################################
+
+FROM base AS x86
+
+ENV AR=x86_64-linux-gnu-gcc-ar-10 \
+    CC=x86_64-linux-gnu-gcc-10 \
+    CXX=x86_64-linux-gnu-g++-10 \
+    GLIBC_COMPAT=true
+
+COPY utils/compat/glibc_version.h /compat/
+
+####################################################################################################
+
+FROM x86 AS i386
+
+ENV BUILD_ARCHITECTURE=x86 \
+    LUAJIT_CC="${LUAJIT_CC} -m32"
+
+RUN sed -i 's/deb http/deb \[arch=amd64,i386\] http/' /etc/apt/sources.list && \
+    dpkg --add-architecture i386 && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+        g++-10-multilib \
+        gcc-10-multilib \
+        libmysqlclient-dev:i386 \
+        libncurses-dev:i386 \
+        libncursesw6:i386 \
+    && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY utils/compat/glibc_version_x86.redef /compat/glibc_version.redef
+RUN mkdir -p /compat/x86 && \
+    objcopy --redefine-syms=/compat/glibc_version.redef "$($CC -m32 --print-file-name=libstdc++.a)" /compat/x86/libstdc++.a && \
+    objcopy --redefine-syms=/compat/glibc_version.redef "$($CC -m32 --print-file-name=libmysqlclient.a)" /compat/x86/libmysqlclient.a
+
+####################################################################################################
+
+FROM x86 AS x64
+
+ENV BUILD_ARCHITECTURE=x64
+
+RUN sed -i 's/deb http/deb \[arch=amd64\] http/' /etc/apt/sources.list && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+        g++-10 \
+        gcc-10 \
+        libmysqlclient-dev \
+        libncurses-dev \
+        libncursesw6 \
+    && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY utils/compat/glibc_version_x64.redef /compat/glibc_version.redef
+RUN mkdir -p /compat/x64 && \
+    objcopy --redefine-syms=/compat/glibc_version.redef "$($CC --print-file-name=libstdc++.a)" /compat/x64/libstdc++.a && \
+    objcopy --redefine-syms=/compat/glibc_version.redef "$($CC --print-file-name=libmysqlclient.a)" /compat/x64/libmysqlclient.a
+
+####################################################################################################
+
+FROM base AS arm
+
+RUN sed 's/deb http:\/\/.*\/ubuntu/deb http:\/\/ports.ubuntu.com\/ubuntu-ports/' /etc/apt/sources.list > /etc/apt/sources.list.d/ubuntu-ports.list
+
+####################################################################################################
+
+FROM arm AS armhf
+
+ENV BUILD_ARCHITECTURE=arm \
+    LUAJIT_HOST_CC="i686-linux-gnu-gcc-10 -m32" \
+    GCC_PREFIX=arm-linux-gnueabihf- \
+    AR=arm-linux-gnueabihf-ar \
+    CC=arm-linux-gnueabihf-gcc-10 \
+    CXX=arm-linux-gnueabihf-g++-10
+
+RUN sed -i 's/deb http/deb \[arch=armhf\] http/' /etc/apt/sources.list.d/ubuntu-ports.list && \
+    sed -i 's/deb http/deb \[arch=amd64,i386\] http/' /etc/apt/sources.list && \
+    dpkg --add-architecture armhf && \
+    dpkg --add-architecture i386 && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+        g++-10-arm-linux-gnueabihf \
+        gcc-10-arm-linux-gnueabihf \
+        gcc-10-i686-linux-gnu \
+        libc6-dev:i386 \
+        libmysqlclient-dev:armhf \
+        libncurses-dev:armhf \
+        libncursesw6:armhf \
+    && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+####################################################################################################
+
+FROM arm AS arm64
+
+ENV BUILD_ARCHITECTURE=arm64 \
+    GCC_PREFIX=aarch64-linux-gnu- \
+    AR=aarch64-linux-gnu-ar \
+    CC=aarch64-linux-gnu-gcc-10 \
+    CXX=aarch64-linux-gnu-g++-10
+
+RUN sed -i 's/deb http/deb \[arch=arm64\] http/' /etc/apt/sources.list.d/ubuntu-ports.list && \
+    sed -i 's/deb http/deb \[arch=amd64\] http/' /etc/apt/sources.list && \
+    dpkg --add-architecture arm64 && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+        g++-10-aarch64-linux-gnu \
+        gcc-10 \
+        gcc-10-aarch64-linux-gnu \
+        libmysqlclient-dev:arm64 \
+        libncurses-dev:arm64 \
+        libncursesw6:arm64 \
+    && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+####################################################################################################
