@@ -1,0 +1,133 @@
+spec:
+  inputs:
+    tag:
+      type: string
+      options:
+        - latest
+        - i386
+        - arm64
+        - armhf
+---
+prepare [$[[ inputs.tag ]]]:
+  stage: prepare
+  image: ${CI_REGISTRY_IMAGE}/build:$[[ inputs.tag ]]
+  artifacts:
+    paths:
+      - $OUTPUT_DIR
+    reports:
+      dotenv: .env
+  variables:
+    LATEST_URL_TEMPLATE: https://nightly.multitheftauto.com/?multitheftauto_linuxNIGHTLY_SUFFIX-1.6-latest
+    GIT_STRATEGY: none
+  before_script:
+    - >-
+      if [[ "$[[ inputs.tag ]]" == "latest" ]]; then
+        NIGHTLY_SUFFIX="_x64"
+      elif [[ "$[[ inputs.tag ]]" == "i386" ]]; then
+        NIGHTLY_SUFFIX=""
+      elif [[ "$[[ inputs.tag ]]" == "arm64" ]]; then
+        NIGHTLY_SUFFIX="_arm64"
+      elif [[ "$[[ inputs.tag ]]" == "armhf" ]]; then
+        NIGHTLY_SUFFIX="_arm"
+      else
+        echo "Unknown image tag: $[[ inputs.tag ]]"
+        exit 1
+      fi
+    - LATEST_URL=${LATEST_URL_TEMPLATE/NIGHTLY_SUFFIX/$NIGHTLY_SUFFIX}
+  script:
+    - set -e
+    - wget --quiet --content-disposition "$LATEST_URL"
+    - FILENAME=$(ls multitheftauto_linux* | head -n 1)
+    - test -f "${FILENAME}"
+    - tar xvaf "${FILENAME}" --strip-components=1 --one-top-level="${OUTPUT_DIR}" --wildcards "*/net.so"
+    - VER=${FILENAME#*-}
+    - VER=${VER/-*}
+    - REV=${FILENAME#*-full_rc-}
+    - REV=${REV#*-rc-}
+    - REV=${REV%-*}
+    - REV=${REV%%.*}
+    - echo "PACKAGE=${FILENAME/.tar*}" >> .env
+    - echo "NET_VERSION=$VER" >> .env
+    - echo "NET_REVISION=$REV" >> .env
+  tags:
+    - platform:linux/amd64
+  rules:
+    - if: $CI_COMMIT_BRANCH
+
+build [$[[ inputs.tag ]]]:
+  stage: build
+  image: ${CI_REGISTRY_IMAGE}/build:$[[ inputs.tag ]]
+  needs:
+    - prepare [$[[ inputs.tag ]]]
+  artifacts:
+    paths:
+      - $OUTPUT_DIR
+  before_script:
+    - |
+      cat > "Shared/build_overrides.h" <<EOF
+      #undef MTASA_VERSION_TYPE
+      #undef MTASA_VERSION_BUILD
+      #define MTASA_VERSION_TYPE VERSION_TYPE_RELEASE
+      #define MTASA_VERSION_BUILD $NET_REVISION
+      EOF
+  script:
+    - ./linux-build.sh
+    - cp Server/output/* "$OUTPUT_DIR"
+  tags:
+    - platform:linux/amd64
+  rules:
+    - if: $CI_COMMIT_BRANCH
+
+package [$[[ inputs.tag ]]]:
+  stage: package
+  image: ${CI_REGISTRY_IMAGE}/build:$[[ inputs.tag ]]
+  needs:
+    - prepare [$[[ inputs.tag ]]]
+    - build [$[[ inputs.tag ]]]
+  artifacts:
+    paths:
+      - packages
+    reports:
+      dotenv: .env
+  variables:
+    GIT_STRATEGY: none
+  script:
+    - echo "NET_VERSION=$NET_VERSION" >> .env
+    - echo "NET_REVISION=$NET_REVISION" >> .env
+    - cd "$OUTPUT_DIR"
+    - find . -type f -name "*.so" -exec chmod -x "{}" \;
+    - mkdir -p mods/deathmatch
+    - cd "$CI_PROJECT_DIR"
+    - mv "$OUTPUT_DIR" "${PACKAGE}"
+    - mkdir -p packages
+    - tar --owner=0 --group=0 -cvaf "packages/${PACKAGE}.tar.gz" "${PACKAGE}"
+    - tar --owner=0 --group=0 -cvaf "packages/${PACKAGE}.tar.xz" "${PACKAGE}"
+  tags:
+    - platform:linux/amd64
+  rules:
+    - if: $CI_COMMIT_BRANCH
+
+upload [$[[ inputs.tag ]]]:
+  stage: upload
+  image: curlimages/curl:latest
+  needs:
+    - package [$[[ inputs.tag ]]]
+  variables:
+    GIT_STRATEGY: none
+  artifacts:
+    paths:
+      - assets
+  script:
+    - mkdir -p assets
+    - cd packages
+    - |
+      for package in *; do
+        package_url="${PACKAGE_REGISTRY_URL}/${NET_VERSION}-r${NET_REVISION}-${CI_PIPELINE_IID}/${package}"
+        curl \
+          --header "JOB-TOKEN: ${CI_JOB_TOKEN}" \
+          --upload-file "${package}" \
+          "${package_url}"
+        echo "{\"name\":\"${package}\",\"direct_asset_path\":\"/${package/-*}.tar.${package##*.}\",\"url\":\"${package_url}\",\"link_type\":\"package\"}" > "${CI_PROJECT_DIR}/assets/${package}.json"
+      done
+  rules:
+    - if: $CI_COMMIT_BRANCH
