@@ -35,7 +35,7 @@ ENV AR=x86_64-linux-gnu-gcc-ar-10 \
     CXX=x86_64-linux-gnu-g++-10 \
     GLIBC_COMPAT=true
 
-COPY utils/compat/glibc_version.h /compat/
+COPY utils/docker/compat/glibc_version.h /compat/
 
 ####################################################################################################
 
@@ -51,13 +51,16 @@ RUN sed -i 's/deb http/deb \[arch=amd64,i386\] http/' /etc/apt/sources.list && \
         g++-10-multilib \
         gcc-10-multilib \
         libmysqlclient-dev:i386 \
+        libmysqlclient21:i386 \
         libncurses-dev:i386 \
         libncursesw6:i386 \
+        libssl-dev:i386 \
+        zlib1g-dev:i386 \
     && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-COPY utils/compat/glibc_version_x86.redef /compat/glibc_version.redef
+COPY utils/docker/compat/glibc_version_x86.redef /compat/glibc_version.redef
 RUN mkdir -p /compat/x86 && \
     objcopy --redefine-syms=/compat/glibc_version.redef "$($CC -m32 --print-file-name=libstdc++.a)" /compat/x86/libstdc++.a && \
     objcopy --redefine-syms=/compat/glibc_version.redef "$($CC -m32 --print-file-name=libmysqlclient.a)" /compat/x86/libmysqlclient.a
@@ -74,13 +77,16 @@ RUN sed -i 's/deb http/deb \[arch=amd64\] http/' /etc/apt/sources.list && \
         g++-10 \
         gcc-10 \
         libmysqlclient-dev \
+        libmysqlclient21 \
         libncurses-dev \
         libncursesw6 \
+        libssl-dev \
+        zlib1g-dev \
     && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-COPY utils/compat/glibc_version_x64.redef /compat/glibc_version.redef
+COPY utils/docker/compat/glibc_version_x64.redef /compat/glibc_version.redef
 RUN mkdir -p /compat/x64 && \
     objcopy --redefine-syms=/compat/glibc_version.redef "$($CC --print-file-name=libstdc++.a)" /compat/x64/libstdc++.a && \
     objcopy --redefine-syms=/compat/glibc_version.redef "$($CC --print-file-name=libmysqlclient.a)" /compat/x64/libmysqlclient.a
@@ -113,8 +119,11 @@ RUN sed -i 's/deb http/deb \[arch=armhf\] http/' /etc/apt/sources.list.d/ubuntu-
         gcc-10-i686-linux-gnu \
         libc6-dev:i386 \
         libmysqlclient-dev:armhf \
+        libmysqlclient21:armhf \
         libncurses-dev:armhf \
         libncursesw6:armhf \
+        libssl-dev:armhf \
+        zlib1g-dev:armhf \
     && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
@@ -134,12 +143,16 @@ RUN sed -i 's/deb http/deb \[arch=arm64\] http/' /etc/apt/sources.list.d/ubuntu-
     dpkg --add-architecture arm64 && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
+        g++-10 \
         g++-10-aarch64-linux-gnu \
         gcc-10 \
         gcc-10-aarch64-linux-gnu \
         libmysqlclient-dev:arm64 \
+        libmysqlclient21:arm64 \
         libncurses-dev:arm64 \
         libncursesw6:arm64 \
+        libssl-dev:arm64 \
+        zlib1g-dev:arm64 \
     && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*

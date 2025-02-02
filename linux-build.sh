@@ -13,15 +13,20 @@ else
     PREMAKE5=utils/premake5
 fi
 
-# Number of cores
 if [ "$(uname)" == "Darwin" ]; then
-    NUM_CORES=$(sysctl -n hw.ncpu)
     : ${GCC_PREFIX:=}
     : ${AR:=ar}
     : ${CC:=gcc}
     : ${CXX:=g++}
-else
-    NUM_CORES=$(grep -c ^processor /proc/cpuinfo)
+fi
+
+# Number of cores
+if [[ -z "$NUM_CORES" ]]; then
+    if [ "$(uname)" == "Darwin" ]; then
+        NUM_CORES=$(sysctl -n hw.ncpu)
+    else
+        NUM_CORES=$(grep -c ^processor /proc/cpuinfo)
+    fi
 fi
 
 # Read script arguments
@@ -55,14 +60,12 @@ esac
 case $BUILD_ARCHITECTURE in
     32|x86)
         CONFIG=${BUILD_CONFIG}_x86
-        : ${GCC_PREFIX:=i386-linux-gnu-}
-        : ${AR:=x86_64-linux-gnu-gcc-ar-10}
-        : ${CC:=x86_64-linux-gnu-gcc-10}
-        : ${CXX:=x86_64-linux-gnu-g++-10}
+        : "${AR:=x86_64-linux-gnu-gcc-ar-10}"
+        : "${CC:=x86_64-linux-gnu-gcc-10}"
+        : "${CXX:=x86_64-linux-gnu-g++-10}"
     ;;
     64|x64)
         CONFIG=${BUILD_CONFIG}_x64
-        : ${GCC_PREFIX:=x86_64-linux-gnu-}
         : ${AR:=x86_64-linux-gnu-gcc-ar-10}
         : ${CC:=x86_64-linux-gnu-gcc-10}
         : ${CXX:=x86_64-linux-gnu-g++-10}
@@ -104,4 +107,4 @@ else
 fi
 
 # Build!
-make -C Build/ -j ${NUM_CORES} AR=${AR} CC=${CC} CXX=${CXX} config=${CONFIG} all
+make -C Build/ -j ${NUM_CORES} AR=${AR} CC=${CC} CXX=${CXX} config=${CONFIG}
