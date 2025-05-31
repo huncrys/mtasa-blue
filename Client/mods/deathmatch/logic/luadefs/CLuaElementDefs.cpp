@@ -1767,13 +1767,13 @@ int CLuaElementDefs::SetElementData(lua_State* luaVM)
 {
     //  bool setElementData ( element theElement, string key, var value, [bool synchronize = true] )
     CClientEntity* pEntity;
-    CStringName    key;
+    SString        strKey;
     CLuaArgument   value;
     bool           bSynchronize;
 
     CScriptArgReader argStream(luaVM);
     argStream.ReadUserData(pEntity);
-    argStream.ReadStringName(key);
+    argStream.ReadString(strKey);
     argStream.ReadLuaArgument(value);
     argStream.ReadBool(bSynchronize, true);
 
@@ -1782,16 +1782,15 @@ int CLuaElementDefs::SetElementData(lua_State* luaVM)
         CLuaMain* pLuaMain = m_pLuaManager->GetVirtualMachine(luaVM);
         if (pLuaMain)
         {
-            if (key->length() > MAX_CUSTOMDATA_NAME_LENGTH)
+            if (strKey.length() > MAX_CUSTOMDATA_NAME_LENGTH)
             {
                 // Warn and truncate if key is too long
                 m_pScriptDebugging->LogCustom(luaVM, SString("Truncated argument @ '%s' [%s]", lua_tostring(luaVM, lua_upvalueindex(1)),
                                                              *SString("string length reduced to %d characters at argument 2", MAX_CUSTOMDATA_NAME_LENGTH)));
-
-                key = key->substr(0, MAX_CUSTOMDATA_NAME_LENGTH);
+                strKey = strKey.Left(MAX_CUSTOMDATA_NAME_LENGTH);
             }
 
-            if (CStaticFunctionDefinitions::SetElementData(*pEntity, key.ToCString(), value, bSynchronize))
+            if (CStaticFunctionDefinitions::SetElementData(*pEntity, strKey, value, bSynchronize))
             {
                 lua_pushboolean(luaVM, true);
                 return 1;
@@ -1810,27 +1809,26 @@ int CLuaElementDefs::RemoveElementData(lua_State* luaVM)
 {
     //  bool removeElementData ( element theElement, string key )
     CClientEntity* pEntity;
-    CStringName    key;
+    SString        strKey;
 
     CScriptArgReader argStream(luaVM);
     argStream.ReadUserData(pEntity);
-    argStream.ReadStringName(key);
+    argStream.ReadString(strKey);
 
     if (!argStream.HasErrors())
     {
         CLuaMain* pLuaMain = m_pLuaManager->GetVirtualMachine(luaVM);
         if (pLuaMain)
         {
-            if (key->length() > MAX_CUSTOMDATA_NAME_LENGTH)
+            if (strKey.length() > MAX_CUSTOMDATA_NAME_LENGTH)
             {
                 // Warn and truncate if key is too long
                 m_pScriptDebugging->LogCustom(luaVM, SString("Truncated argument @ '%s' [%s]", lua_tostring(luaVM, lua_upvalueindex(1)),
                                                              *SString("string length reduced to %d characters at argument 2", MAX_CUSTOMDATA_NAME_LENGTH)));
-
-                key = key->substr(0, MAX_CUSTOMDATA_NAME_LENGTH);
+                strKey = strKey.Left(MAX_CUSTOMDATA_NAME_LENGTH);
             }
 
-            if (CStaticFunctionDefinitions::RemoveElementData(*pEntity, key.ToCString()))
+            if (CStaticFunctionDefinitions::RemoveElementData(*pEntity, strKey))
             {
                 lua_pushboolean(luaVM, true);
                 return 1;
