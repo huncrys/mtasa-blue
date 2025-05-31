@@ -17,7 +17,6 @@
 #include <cfloat>
 #include "CStringMap.h"
 #include "CScriptDebugging.h"
-#include "CStringName.h"
 
 #ifndef MTA_CLIENT
     #include "CGame.h"
@@ -607,35 +606,6 @@ public:
         }
 
         outValue = "";
-        SetTypeError("string");
-        m_iIndex++;
-    }
-
-    //
-    // Read next string name
-    //
-    void ReadStringName(CStringName& outValue)
-    {
-        const int iArgument = lua_type(m_luaVM, m_iIndex);
-        if (iArgument == LUA_TSTRING)
-        {
-            size_t length;
-            const char* str = lua_tolstring(m_luaVM, m_iIndex, &length);
-            unsigned hash = lua_tostringhash(m_luaVM, m_iIndex++);
-
-            try
-            {
-                outValue = CStringName::FromStringAndHash(std::string_view(str, length), hash);
-            }
-            catch (const std::bad_alloc&)
-            {
-                SetCustomError("out of memory", "Memory allocation");
-            }
-
-            return;
-        }        
-
-        outValue.Clear();
         SetTypeError("string");
         m_iIndex++;
     }
