@@ -62,7 +62,7 @@ project "Deathmatch"
 		links { "ws2_32", "pthread" }
 
 	filter "system:not windows"
-		buildoptions { "-Wno-narrowing" } -- We should fix the warnings at some point
+		buildoptions { "-Wno-narrowing -Wno-nonnull -Wno-class-conversion" } -- We should fix the warnings at some point
 		buildoptions { "-pthread" }
 		linkoptions { "-pthread -lluajit" }
 
