@@ -1,24 +1,25 @@
 #!/bin/bash -e
 
 # Set variable defaults
-: ${BUILD_CONFIG:=release}
-: ${PREMAKE_FILE:=premake5.lua}
+: "${BUILD_CONFIG:=release}"
+: "${PREMAKE_FILE:=premake5.lua}"
+: "${GCC_VERSION:=15}"
 
 if [ "$(uname)" == "Darwin" ]; then
     cores=$(sysctl -n hw.ncpu)
-    : ${NUM_CORES:=$cores}
-    : ${PREMAKE5:=utils/premake5-macos}
-    : ${BUILD_OS:=macosx}
-    : ${BUILD_ARCHITECTURE:=arm64}
-    : ${AR:=ar}
-    : ${CC:=clang}
-    : ${CXX:=clang++}
+    : "${NUM_CORES:=$cores}"
+    : "${PREMAKE5:=utils/premake5-macos}"
+    : "${BUILD_OS:=macosx}"
+    : "${BUILD_ARCHITECTURE:=arm64}"
+    : "${AR:=ar}"
+    : "${CC:=clang}"
+    : "${CXX:=clang++}"
 else
     cores=$(grep -c ^processor /proc/cpuinfo)
-    : ${NUM_CORES:=$cores}
-    : ${PREMAKE5:=utils/premake5}
-    : ${BUILD_OS:=linux}
-    : ${BUILD_ARCHITECTURE:=x64}
+    : "${NUM_CORES:=$cores}"
+    : "${PREMAKE5:=utils/premake5}"
+    : "${BUILD_OS:=linux}"
+    : "${BUILD_ARCHITECTURE:=x64}"
 fi
 
 # Read script arguments
@@ -69,10 +70,10 @@ esac
 
 # Cross toolchain defaults, same as utils/docker/docker-entrypoint.sh
 if [ "$(uname)" != "Darwin" ]; then
-    : ${GCC_PREFIX:=$triplet}
-    : ${AR:=${triplet}gcc-ar-15}
-    : ${CC:=${triplet}gcc-15}
-    : ${CXX:=${triplet}g++-15}
+    : "${GCC_PREFIX:=$triplet}"
+    : "${AR:=${triplet}gcc-ar-${GCC_VERSION}}"
+    : "${CC:=${triplet}gcc-${GCC_VERSION}}"
+    : "${CXX:=${triplet}g++-${GCC_VERSION}}"
 fi
 
 echo "  OS = $BUILD_OS"
@@ -87,10 +88,10 @@ rm -Rf Bin/
 
 # Generate Makefiles
 if [[ -n "$GCC_PREFIX" ]]; then
-    $PREMAKE5 --gccprefix="$GCC_PREFIX" --os="$BUILD_OS" --file=$PREMAKE_FILE gmake
+    $PREMAKE5 --gccprefix="$GCC_PREFIX" --os="$BUILD_OS" --file="$PREMAKE_FILE" gmake
 else
-    $PREMAKE5 --os="$BUILD_OS" --file=$PREMAKE_FILE gmake
+    $PREMAKE5 --os="$BUILD_OS" --file="$PREMAKE_FILE" gmake
 fi
 
 # Build!
-make -C Build/ -j ${NUM_CORES} AR=${AR} CC=${CC} CXX=${CXX} config=${CONFIG}
+make -C Build/ -j "${NUM_CORES}" AR="${AR}" CC="${CC}" CXX="${CXX}" config="${CONFIG}"
