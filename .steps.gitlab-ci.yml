@@ -17,7 +17,7 @@ prepare [$[[ inputs.tag ]]]:
     reports:
       dotenv: .env
   variables:
-    LATEST_URL_TEMPLATE: https://nightly.multitheftauto.com/?multitheftauto_linuxNIGHTLY_SUFFIX-1.6-latest
+    LATEST_URL_TEMPLATE: https://nightly.multitheftauto.com/?multitheftauto_linuxNIGHTLY_SUFFIX-1.6-rc-latest
     GIT_STRATEGY: none
   before_script:
     - >-
