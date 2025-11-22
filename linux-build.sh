@@ -1,10 +1,11 @@
 #!/bin/bash -e
 
 # Set variable defaults
-: ${BUILD_OS:=linux}
-: ${BUILD_ARCHITECTURE:=x64}
-: ${BUILD_CONFIG:=release}
-: ${PREMAKE_FILE:=premake5.lua}
+: "${BUILD_OS:=linux}"
+: "${BUILD_ARCHITECTURE:=x64}"
+: "${BUILD_CONFIG:=release}"
+: "${PREMAKE_FILE:=premake5.lua}"
+: "${GCC_VERSION:=10}"
 
 # Find premake binary location
 if [ "$(uname)" == "Darwin" ]; then
@@ -14,10 +15,10 @@ else
 fi
 
 if [ "$(uname)" == "Darwin" ]; then
-    : ${GCC_PREFIX:=}
-    : ${AR:=ar}
-    : ${CC:=gcc}
-    : ${CXX:=g++}
+    : "${GCC_PREFIX:=}"
+    : "${AR:=ar}"
+    : "${CC:=gcc}"
+    : "${CXX:=g++}"
 fi
 
 # Number of cores
@@ -60,29 +61,29 @@ esac
 case $BUILD_ARCHITECTURE in
     32|x86)
         CONFIG=${BUILD_CONFIG}_x86
-        : "${AR:=x86_64-linux-gnu-gcc-ar-10}"
-        : "${CC:=x86_64-linux-gnu-gcc-10}"
-        : "${CXX:=x86_64-linux-gnu-g++-10}"
+        : "${AR:=x86_64-linux-gnu-gcc-ar-${GCC_VERSION}}"
+        : "${CC:=x86_64-linux-gnu-gcc-${GCC_VERSION}}"
+        : "${CXX:=x86_64-linux-gnu-g++-${GCC_VERSION}}"
     ;;
     64|x64)
         CONFIG=${BUILD_CONFIG}_x64
-        : ${AR:=x86_64-linux-gnu-gcc-ar-10}
-        : ${CC:=x86_64-linux-gnu-gcc-10}
-        : ${CXX:=x86_64-linux-gnu-g++-10}
+        : "${AR:=x86_64-linux-gnu-gcc-ar-${GCC_VERSION}}"
+        : "${CC:=x86_64-linux-gnu-gcc-${GCC_VERSION}}"
+        : "${CXX:=x86_64-linux-gnu-g++-${GCC_VERSION}}"
     ;;
     arm)
         CONFIG=${BUILD_CONFIG}_${BUILD_ARCHITECTURE}
-        : ${GCC_PREFIX:=arm-linux-gnueabihf-}
-        : ${AR:=arm-linux-gnueabihf-ar}
-        : ${CC:=arm-linux-gnueabihf-gcc-10}
-        : ${CXX:=arm-linux-gnueabihf-g++-10}
+        : "${GCC_PREFIX:=arm-linux-gnueabihf-}"
+        : "${AR:=arm-linux-gnueabihf-ar-${GCC_VERSION}}"
+        : "${CC:=arm-linux-gnueabihf-gcc-${GCC_VERSION}}"
+        : "${CXX:=arm-linux-gnueabihf-g++-${GCC_VERSION}}"
     ;;
     arm64)
         CONFIG=${BUILD_CONFIG}_${BUILD_ARCHITECTURE}
-        : ${GCC_PREFIX:=aarch64-linux-gnu-}
-        : ${AR:=aarch64-linux-gnu-gcc-ar-10}
-        : ${CC:=aarch64-linux-gnu-gcc-10}
-        : ${CXX:=aarch64-linux-gnu-g++-10}
+        : "${GCC_PREFIX:=aarch64-linux-gnu-}"
+        : "${AR:=aarch64-linux-gnu-gcc-ar-${GCC_VERSION}}"
+        : "${CC:=aarch64-linux-gnu-gcc-${GCC_VERSION}}"
+        : "${CXX:=aarch64-linux-gnu-g++-${GCC_VERSION}}"
     ;;
     *)
         echo "Error: Invalid build architecture" >&2
@@ -101,10 +102,10 @@ rm -Rf Bin/
 
 # Generate Makefiles
 if [[ -n "$GCC_PREFIX" ]]; then
-    $PREMAKE5 --gccprefix="$GCC_PREFIX" --os="$BUILD_OS" --file=$PREMAKE_FILE gmake
+    $PREMAKE5 --gccprefix="$GCC_PREFIX" --os="$BUILD_OS" --file="$PREMAKE_FILE" gmake
 else
-    $PREMAKE5 --os="$BUILD_OS" --file=$PREMAKE_FILE gmake
+    $PREMAKE5 --os="$BUILD_OS" --file="$PREMAKE_FILE" gmake
 fi
 
 # Build!
-make -C Build/ -j ${NUM_CORES} AR=${AR} CC=${CC} CXX=${CXX} config=${CONFIG}
+make -C Build/ -j "${NUM_CORES}" AR="${AR}" CC="${CC}" CXX="${CXX}" config="${CONFIG}"
