@@ -1,16 +1,16 @@
 spec:
   inputs:
-    tag:
+    platform:
       type: string
       options:
-        - latest
-        - i386
+        - x86
+        - x64
+        - arm
         - arm64
-        - armhf
 ---
-prepare [$[[ inputs.tag ]]]:
+prepare [$[[ inputs.platform ]]]:
   stage: prepare
-  image: ${CI_REGISTRY_IMAGE}/build:$[[ inputs.tag ]]
+  image: ${CI_REGISTRY}/oaklab/ci-tools:stable
   artifacts:
     paths:
       - $OUTPUT_DIR
@@ -21,17 +21,10 @@ prepare [$[[ inputs.tag ]]]:
     GIT_STRATEGY: none
   before_script:
     - >-
-      if [[ "$[[ inputs.tag ]]" == "latest" ]]; then
-        NIGHTLY_SUFFIX="_x64"
-      elif [[ "$[[ inputs.tag ]]" == "i386" ]]; then
-        NIGHTLY_SUFFIX=""
-      elif [[ "$[[ inputs.tag ]]" == "arm64" ]]; then
-        NIGHTLY_SUFFIX="_arm64"
-      elif [[ "$[[ inputs.tag ]]" == "armhf" ]]; then
-        NIGHTLY_SUFFIX="_arm"
+      if [ "$[[ inputs.platform ]]" != "x86" ]; then
+        NIGHTLY_SUFFIX="_$[[ inputs.platform ]]"
       else
-        echo "Unknown image tag: $[[ inputs.tag ]]"
-        exit 1
+        NIGHTLY_SUFFIX=""
       fi
     - LATEST_URL=${LATEST_URL_TEMPLATE/NIGHTLY_SUFFIX/$NIGHTLY_SUFFIX}
   script:
@@ -54,11 +47,13 @@ prepare [$[[ inputs.tag ]]]:
   rules:
     - if: $CI_COMMIT_BRANCH
 
-build [$[[ inputs.tag ]]]:
+build [$[[ inputs.platform ]]]:
   stage: build
-  image: ${CI_REGISTRY_IMAGE}/build:$[[ inputs.tag ]]
+  image:
+    name: ${CI_REGISTRY_IMAGE}/build:multiarch
+    entrypoint: [""]
   needs:
-    - prepare [$[[ inputs.tag ]]]
+    - prepare [$[[ inputs.platform ]]]
   artifacts:
     paths:
       - $OUTPUT_DIR
@@ -71,19 +66,19 @@ build [$[[ inputs.tag ]]]:
       #define MTASA_VERSION_BUILD $NET_REVISION
       EOF
   script:
-    - ./linux-build.sh
+    - ./linux-build.sh --arch="$[[ inputs.platform ]]"
     - cp Server/output/* "$OUTPUT_DIR"
   tags:
     - platform:linux/amd64
   rules:
     - if: $CI_COMMIT_BRANCH
 
-package [$[[ inputs.tag ]]]:
+package [$[[ inputs.platform ]]]:
   stage: package
-  image: ${CI_REGISTRY_IMAGE}/build:$[[ inputs.tag ]]
+  image: ${CI_REGISTRY}/oaklab/ci-tools:stable
   needs:
-    - prepare [$[[ inputs.tag ]]]
-    - build [$[[ inputs.tag ]]]
+    - prepare [$[[ inputs.platform ]]]
+    - build [$[[ inputs.platform ]]]
   artifacts:
     paths:
       - packages
@@ -107,11 +102,11 @@ package [$[[ inputs.tag ]]]:
   rules:
     - if: $CI_COMMIT_BRANCH
 
-upload [$[[ inputs.tag ]]]:
+upload [$[[ inputs.platform ]]]:
   stage: upload
-  image: curlimages/curl:latest
+  image: ${CI_REGISTRY}/oaklab/ci-tools:stable
   needs:
-    - package [$[[ inputs.tag ]]]
+    - package [$[[ inputs.platform ]]]
   variables:
     GIT_STRATEGY: none
   artifacts:
