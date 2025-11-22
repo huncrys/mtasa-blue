@@ -14,25 +14,25 @@ variables:
 include:
   - local: .steps.gitlab-ci.yml
     inputs:
-      tag: latest
+      platform: x86
   - local: .steps.gitlab-ci.yml
     inputs:
-      tag: i386
+      platform: x64
   - local: .steps.gitlab-ci.yml
     inputs:
-      tag: arm64
+      platform: arm
   - local: .steps.gitlab-ci.yml
     inputs:
-      tag: armhf
+      platform: arm64
 
 release:
   stage: release
-  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  image: ${CI_REGISTRY}/oaklab/ci-tools:stable
   dependencies:
-    - upload [latest]
-    - upload [i386]
+    - upload [x86]
+    - upload [x64]
+    - upload [arm]
     - upload [arm64]
-    - upload [armhf]
   variables:
     GIT_STRATEGY: none
   script:
