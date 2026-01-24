@@ -17,33 +17,38 @@ prepare [$[[ inputs.platform ]]]:
     reports:
       dotenv: .env
   variables:
-    LATEST_URL_TEMPLATE: https://nightly.multitheftauto.com/?multitheftauto_linuxNIGHTLY_SUFFIX-1.6-rc-latest
+    #LATEST_URL_TEMPLATE: https://nightly.multitheftauto.com/?multitheftauto_linuxNIGHTLY_SUFFIX-1.6-rc-latest
+    LATEST_URL_TEMPLATE: https://nightly.multitheftauto.com/multitheftauto_linuxNIGHTLY_SUFFIX-1.6.0-rc-23757.tar.gz
     GIT_STRATEGY: none
   before_script:
-    - >-
+    - |-
       if [ "$[[ inputs.platform ]]" != "x86" ]; then
         NIGHTLY_SUFFIX="_$[[ inputs.platform ]]"
       else
         NIGHTLY_SUFFIX=""
       fi
-    - LATEST_URL=${LATEST_URL_TEMPLATE/NIGHTLY_SUFFIX/$NIGHTLY_SUFFIX}
+      LATEST_URL=${LATEST_URL_TEMPLATE/NIGHTLY_SUFFIX/$NIGHTLY_SUFFIX}
+      ci-logf info 'Computed URL: %s' "$LATEST_URL"
   script:
-    - set -e
-    - wget --quiet --content-disposition "$LATEST_URL"
-    - FILENAME=$(ls multitheftauto_linux* | head -n 1)
-    - test -f "${FILENAME}"
-    - tar xvaf "${FILENAME}" --strip-components=1 --one-top-level="${OUTPUT_DIR}" --wildcards "*/net.so"
-    - VER=${FILENAME#*-}
-    - VER=${VER/-*}
-    - REV=${FILENAME#*-full_rc-}
-    - REV=${REV#*-rc-}
-    - REV=${REV%-*}
-    - REV=${REV%%.*}
-    - echo "PACKAGE=${FILENAME/.tar*}" >> .env
-    - echo "NET_VERSION=$VER" >> .env
-    - echo "NET_REVISION=$REV" >> .env
+    - |-
+      set -e
+      wget --quiet --content-disposition "$LATEST_URL"
+      FILENAME=$(ls multitheftauto_linux* | head -n 1)
+      test -f "${FILENAME}"
+      tar xvaf "${FILENAME}" --strip-components=1 --one-top-level="${OUTPUT_DIR}" --wildcards "*/net.so"
+      VER=${FILENAME#*-}
+      VER=${VER/-*}
+      REV=${FILENAME#*-full_rc-}
+      REV=${REV#*-rc-}
+      REV=${REV%-*}
+      REV=${REV%%.*}
+      echo "PACKAGE=${FILENAME/.tar*}" >> .env
+      echo "NET_VERSION=$VER" >> .env
+      echo "NET_REVISION=$REV" >> .env
+      ci-log info Prepared environment
+      ci-logf info " - %s\n" $(cat .env)
   tags:
-    - platform:linux/amd64
+    - platform:any
   rules:
     - if: $CI_COMMIT_BRANCH
 
@@ -98,7 +103,7 @@ package [$[[ inputs.platform ]]]:
     - tar --owner=0 --group=0 -cvaf "packages/${PACKAGE}.tar.gz" "${PACKAGE}"
     - tar --owner=0 --group=0 -cvaf "packages/${PACKAGE}.tar.xz" "${PACKAGE}"
   tags:
-    - platform:linux/amd64
+    - platform:any
   rules:
     - if: $CI_COMMIT_BRANCH
 
@@ -124,5 +129,7 @@ upload [$[[ inputs.platform ]]]:
           "${package_url}"
         echo "{\"name\":\"${package}\",\"direct_asset_path\":\"/${package/-*}.tar.${package##*.}\",\"url\":\"${package_url}\",\"link_type\":\"package\"}" > "${CI_PROJECT_DIR}/assets/${package}.json"
       done
+  tags:
+    - platform:any
   rules:
     - if: $CI_COMMIT_BRANCH
