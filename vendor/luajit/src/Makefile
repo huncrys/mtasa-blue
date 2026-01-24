@@ -7,7 +7,7 @@
 # Also works with MinGW and Cygwin on Windows.
 # Please check msvcbuild.bat for building with MSVC on Windows.
 #
-# Copyright (C) 2005-2025 Mike Pall. See Copyright Notice in luajit.h
+# Copyright (C) 2005-2026 Mike Pall. See Copyright Notice in luajit.h
 ##############################################################################
 
 MAJVER=  2
@@ -70,10 +70,10 @@ CCWARN= -Wall
 # as dynamic mode.
 #
 # Mixed mode creates a static + dynamic library and a statically linked luajit.
-#BUILDMODE= mixed
+BUILDMODE= mixed
 #
 # Static mode creates a static library and a statically linked luajit.
-BUILDMODE= static
+#BUILDMODE= static
 #
 # Dynamic mode creates a dynamic library and a dynamically linked luajit.
 # Note: this executable will only run when the library is installed!
@@ -86,7 +86,7 @@ BUILDMODE= static
 ##############################################################################
 # Enable/disable these features as needed, but make sure you force a full
 # recompile with "make clean", followed by "make".
-XCFLAGS= -fPIC
+XCFLAGS=
 #
 # Permanently disable the FFI extension to reduce the size of the LuaJIT
 # executable. But please consider that the FFI library is compiled-in,
@@ -301,9 +301,6 @@ ifneq (,$(LMULTILIB))
 endif
 ifneq (,$(INSTALL_LJLIBD))
   TARGET_XCFLAGS+= -DLUA_LJDIR=\"$(INSTALL_LJLIBD)\"
-endif
-ifeq (,$(shell $(TARGET_CC) -o /dev/null -c -x c /dev/null -fno-strict-float-cast-overflow 2>/dev/null || echo 1))
-  TARGET_XCFLAGS+= -fno-strict-float-cast-overflow
 endif
 
 ##############################################################################
