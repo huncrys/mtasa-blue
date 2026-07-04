@@ -621,11 +621,11 @@ public:
         {
             size_t      length;
             const char* str = lua_tolstring(m_luaVM, m_iIndex, &length);
-            unsigned    hash = lua_tostringhash(m_luaVM, m_iIndex++);
+            m_iIndex++;
 
             try
             {
-                outValue = CStringName::FromStringAndHash(std::string_view(str, length), hash);
+                outValue = CStringName(std::string_view(str, length));
             }
             catch (const std::bad_alloc&)
             {
