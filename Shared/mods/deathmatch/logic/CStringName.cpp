@@ -13,14 +13,24 @@
 #include <array>
 #include <string_view>
 
-extern "C"
-{
-#include "lua/src/lstring.h"
-}
-
+// Self-contained string hash, independent of the Lua/LuaJIT string representation.
+// LuaJIT's own internal string hash is per-VM seeded (hash-flood protection) and can even be
+// rehashed in place for a given string object during its lifetime, so it must not be read or
+// relied upon here - this table needs one hash value that stays stable for the process lifetime.
+// Algorithm is PUC-Lua 5.1's original luaS_hash, but in C++17
 static StringNameHash MakeStringNameHash(const std::string_view& str)
 {
-    return luaS_hash(str.data(), str.length());
+    if (str.empty())
+        return 0;
+
+    const size_t len = str.length();
+    const size_t step = (len >> 5) + 1; // if string is too long, don't hash all its chars
+
+    auto h = static_cast<unsigned int>(str.length()); // seed
+    for (size_t l1 = len; l1 >= step; l1 -= step) // compute hash
+        h ^= (h << 5) + (h >> 2) + static_cast<unsigned char>(str[l1 - 1]);
+
+    return h;
 }
 
 /*
