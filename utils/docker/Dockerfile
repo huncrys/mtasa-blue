@@ -64,8 +64,10 @@ RUN mkdir -p /compat/x64 /compat/x86 \
 VOLUME  /build
 WORKDIR /build
 
-COPY docker-entrypoint.sh  /docker-entrypoint.sh
+COPY --chmod=+x docker-entrypoint.sh /docker-entrypoint.sh
 
-RUN chmod +x /docker-entrypoint.sh
+RUN useradd -m -c "GitLab Runner" -s /bin/bash -U gitlab-runner
+
+USER gitlab-runner
 
 ENTRYPOINT ["/bin/bash", "/docker-entrypoint.sh"]

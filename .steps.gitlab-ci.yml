@@ -17,7 +17,6 @@ prepare [$[[ inputs.platform ]]]:
     reports:
       dotenv: .env
   variables:
-    FF_DISABLE_UMASK_FOR_DOCKER_EXECUTOR: "true"
     #LATEST_URL_TEMPLATE: https://nightly.multitheftauto.com/?multitheftauto_linuxNIGHTLY_SUFFIX-1.6-rc-latest
     LATEST_URL_TEMPLATE: https://nightly.multitheftauto.com/multitheftauto_linuxNIGHTLY_SUFFIX-1.6.0-rc-24124.tar.gz
     GIT_STRATEGY: none
@@ -91,7 +90,6 @@ package [$[[ inputs.platform ]]]:
     reports:
       dotenv: .env
   variables:
-    FF_DISABLE_UMASK_FOR_DOCKER_EXECUTOR: "true"
     GIT_STRATEGY: none
   script:
     - echo "NET_VERSION=$NET_VERSION" >> .env
@@ -115,7 +113,6 @@ upload [$[[ inputs.platform ]]]:
   needs:
     - package [$[[ inputs.platform ]]]
   variables:
-    FF_DISABLE_UMASK_FOR_DOCKER_EXECUTOR: "true"
     GIT_STRATEGY: none
   artifacts:
     paths:
