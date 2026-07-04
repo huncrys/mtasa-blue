@@ -18,12 +18,12 @@ include:
   - local: .steps.gitlab-ci.yml
     inputs:
       platform: x64
-  - local: .steps.gitlab-ci.yml
-    inputs:
-      platform: arm
-  - local: .steps.gitlab-ci.yml
-    inputs:
-      platform: arm64
+#  - local: .steps.gitlab-ci.yml
+#    inputs:
+#      platform: arm
+#  - local: .steps.gitlab-ci.yml
+#    inputs:
+#      platform: arm64
 
 release:
   stage: release
@@ -31,9 +31,10 @@ release:
   dependencies:
     - upload [x86]
     - upload [x64]
-    - upload [arm]
-    - upload [arm64]
+#    - upload [arm]
+#    - upload [arm64]
   variables:
+    FF_DISABLE_UMASK_FOR_DOCKER_EXECUTOR: "true"
     GIT_STRATEGY: none
   script:
     - ASSETS="[$(cat assets/* | sed '/^$/d' | tr '\n' ',' | sed 's/,$//')]"
