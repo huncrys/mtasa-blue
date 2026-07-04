@@ -6,6 +6,7 @@ stages:
   - release
 
 variables:
+  FF_DISABLE_UMASK_FOR_DOCKER_EXECUTOR: "true"
   PACKAGE_REGISTRY_URL: ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/mtasa-blue
   OUTPUT_DIR: Bin/server
   BUILD_OVERRIDES: Shared/build_overrides.h
@@ -34,7 +35,6 @@ release:
 #    - upload [arm]
 #    - upload [arm64]
   variables:
-    FF_DISABLE_UMASK_FOR_DOCKER_EXECUTOR: "true"
     GIT_STRATEGY: none
   script:
     - ASSETS="[$(cat assets/* | sed '/^$/d' | tr '\n' ',' | sed 's/,$//')]"
