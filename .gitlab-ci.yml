@@ -66,6 +66,8 @@ generate index:
       --recursive
       --quiet
       --use-metadata-mtime
+      --sort-by last_modified
+      --order desc
       "s3://${S3_BUCKET}/"
       "s3://${S3_BUCKET}/"
   tags:
