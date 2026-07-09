@@ -43,8 +43,17 @@ release:
   script:
     - RELEASE_TAG="${NET_VERSION}-r${NET_REVISION}"
     - ASSETS="[$(cat assets/* | sed '/^$/d' | tr '\n' ',' | sed 's/,$//')]"
-    - glab release delete "${RELEASE_TAG}" --repo "${CI_PROJECT_PATH}" --with-tag --yes || true
-    - glab release create "${RELEASE_TAG}" --repo "${CI_PROJECT_PATH}" --name "${RELEASE_TAG}" --assets-links "${ASSETS}"
+    - >-
+      glab release delete "${RELEASE_TAG}"
+      --repo "${CI_PROJECT_PATH}"
+      --with-tag --yes
+      || true
+    - >-
+      glab release create "${RELEASE_TAG}"
+      --repo "${CI_PROJECT_PATH}"
+      --ref "${CI_COMMIT_SHA}"
+      --name "${RELEASE_TAG}"
+      --assets-links "${ASSETS}"
   tags:
     - platform:any
   rules:
