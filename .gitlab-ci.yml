@@ -7,7 +7,7 @@ stages:
 
 variables:
   FF_DISABLE_UMASK_FOR_DOCKER_EXECUTOR: "true"
-  PACKAGE_REGISTRY_URL: ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/mtasa-blue
+  PUBLIC_BASE_URL: https://nightly.mtasa.hu/luajit
   OUTPUT_DIR: Bin/server
   BUILD_OVERRIDES: Shared/build_overrides.h
   NUM_CORES: 16
@@ -29,20 +29,20 @@ include:
 release:
   stage: release
   image: ${CI_REGISTRY}/oaklab/ci-tools:stable
-  dependencies:
+  needs:
     - upload [x86]
     - upload [x64]
 #    - upload [arm]
 #    - upload [arm64]
   variables:
     GIT_STRATEGY: none
+  before_script:
+    - eval "$(setup-glab)"
   script:
+    - RELEASE_TAG="${NET_VERSION}-r${NET_REVISION}"
     - ASSETS="[$(cat assets/* | sed '/^$/d' | tr '\n' ',' | sed 's/,$//')]"
-    - >-
-      release-cli create
-      --name "release-${CI_PIPELINE_IID}"
-      --tag-name "release-${CI_PIPELINE_IID}"
-      --assets-link "${ASSETS}"
+    - glab release delete "${RELEASE_TAG}" --with-tag --yes || true
+    - glab release create "${RELEASE_TAG}" --name "${RELEASE_TAG}" --assets-links "${ASSETS}"
   tags:
     - platform:any
   rules:
