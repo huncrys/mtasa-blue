@@ -42,7 +42,8 @@ prepare [$[[ inputs.platform ]]]:
       REV=${REV#*-rc-}
       REV=${REV%-*}
       REV=${REV%%.*}
-      echo "PACKAGE=${FILENAME/.tar*}" >> .env
+      PREFIX=${FILENAME%%-*}
+      echo "PACKAGE=${PREFIX}-${VER}-luajit-${REV}" >> .env
       echo "NET_VERSION=$VER" >> .env
       echo "NET_REVISION=$REV" >> .env
       ci-log info Prepared environment
@@ -100,7 +101,6 @@ package [$[[ inputs.platform ]]]:
     - cd "$CI_PROJECT_DIR"
     - mv "$OUTPUT_DIR" "${PACKAGE}"
     - mkdir -p packages
-    - tar --owner=0 --group=0 -cvaf "packages/${PACKAGE}.tar.gz" "${PACKAGE}"
     - tar --owner=0 --group=0 -cvaf "packages/${PACKAGE}.tar.xz" "${PACKAGE}"
   tags:
     - platform:any
@@ -117,17 +117,21 @@ upload [$[[ inputs.platform ]]]:
   artifacts:
     paths:
       - assets
+    reports:
+      dotenv: .env
+  before_script:
+    - eval "$(setup-rclone)"
   script:
     - mkdir -p assets
+    - >-
+      rclone copy
+      --stats-log-level NOTICE --stats 9999h
+      packages/ "s3:$S3_BUCKET/luajit/"
     - cd packages
     - |
       for package in *; do
-        package_url="${PACKAGE_REGISTRY_URL}/${NET_VERSION}-r${NET_REVISION}-${CI_PIPELINE_IID}/${package}"
-        curl \
-          --header "JOB-TOKEN: ${CI_JOB_TOKEN}" \
-          --upload-file "${package}" \
-          "${package_url}"
-        echo "{\"name\":\"${package}\",\"direct_asset_path\":\"/${package/-*}.tar.${package##*.}\",\"url\":\"${package_url}\",\"link_type\":\"package\"}" > "${CI_PROJECT_DIR}/assets/${package}.json"
+        package_url="${PUBLIC_BASE_URL}/${package}"
+        echo "{\"name\":\"${package}\",\"direct_asset_path\":\"/${package}\",\"url\":\"${package_url}\",\"link_type\":\"package\"}" > "${CI_PROJECT_DIR}/assets/${package}.json"
       done
   tags:
     - platform:any
