@@ -18,7 +18,7 @@ prepare [$[[ inputs.platform ]]]:
       dotenv: .env
   variables:
     #LATEST_URL_TEMPLATE: https://nightly.multitheftauto.com/?multitheftauto_linuxNIGHTLY_SUFFIX-1.6-rc-latest
-    LATEST_URL_TEMPLATE: https://nightly.multitheftauto.com/multitheftauto_linuxNIGHTLY_SUFFIX-1.6.0-rc-24124.tar.gz
+    LATEST_URL_TEMPLATE: https://nightly.mtasa.hu/official/multitheftauto_linuxNIGHTLY_SUFFIX-1.6.0-rc-24124.tar.gz
     GIT_STRATEGY: none
   before_script:
     - |-
