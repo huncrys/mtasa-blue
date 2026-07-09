@@ -136,4 +136,4 @@ upload [$[[ inputs.platform ]]]:
   tags:
     - platform:any
   rules:
-    - if: $CI_COMMIT_BRANCH
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
