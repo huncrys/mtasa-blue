@@ -4,6 +4,7 @@ stages:
   - package
   - upload
   - release
+  - index
 
 variables:
   FF_DISABLE_UMASK_FOR_DOCKER_EXECUTOR: "true"
@@ -30,6 +31,7 @@ release:
   stage: release
   image: ${CI_REGISTRY}/oaklab/ci-tools:stable
   needs:
+    - prepare [x86]
     - upload [x86]
     - upload [x64]
 #    - upload [arm]
@@ -43,6 +45,29 @@ release:
     - ASSETS="[$(cat assets/* | sed '/^$/d' | tr '\n' ',' | sed 's/,$//')]"
     - glab release delete "${RELEASE_TAG}" --with-tag --yes || true
     - glab release create "${RELEASE_TAG}" --name "${RELEASE_TAG}" --assets-links "${ASSETS}"
+  tags:
+    - platform:any
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+generate index:
+  stage: index
+  image:
+    name: ${CI_REGISTRY}/crys/web-indexer:stable
+    entrypoint: [""]
+  needs:
+    - release
+  variables:
+    TZ: Europe/Budapest
+    GIT_STRATEGY: none
+  script:
+    - >-
+      web-indexer
+      --recursive
+      --quiet
+      --use-metadata-mtime
+      "s3://${S3_BUCKET}/"
+      "s3://${S3_BUCKET}/"
   tags:
     - platform:any
   rules:
