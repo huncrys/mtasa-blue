@@ -117,8 +117,6 @@ upload [$[[ inputs.platform ]]]:
   artifacts:
     paths:
       - assets
-    reports:
-      dotenv: .env
   before_script:
     - eval "$(setup-rclone)"
   script:
