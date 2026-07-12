@@ -4,7 +4,6 @@
 : "${BUILD_CONFIG:=release}"
 : "${PREMAKE_FILE:=premake5.lua}"
 : "${GCC_VERSION:=15}"
-: "${LUAJIT_CC:=gcc-${GCC_VERSION}}"
 
 if [ "$(uname)" == "Darwin" ]; then
     cores=$(sysctl -n hw.ncpu)
@@ -59,7 +58,6 @@ case $BUILD_ARCHITECTURE in
     arm)
         CONFIG=${BUILD_CONFIG}_${BUILD_ARCHITECTURE}
         triplet=arm-linux-gnueabihf-
-        LUAJIT_HOST_CC="x86_64-linux-gnu-${LUAJIT_CC} -m32"
     ;;
     arm64)
         CONFIG=${BUILD_CONFIG}_${BUILD_ARCHITECTURE}
@@ -78,7 +76,9 @@ if [ "$(uname)" != "Darwin" ]; then
     : "${CXX:=${triplet}g++-${GCC_VERSION}}"
 fi
 
-export LUAJIT_CC LUAJIT_HOST_CC
+# Exported so vendor/luajit/premake5.lua can derive LuaJIT's own CC/HOST_CC
+# from the same toolchain selection instead of duplicating it here.
+export CC GCC_VERSION
 
 echo "  OS = $BUILD_OS"
 echo "  CONFIG = $CONFIG"
@@ -86,12 +86,6 @@ echo "  AR = $AR"
 echo "  CC = $CC"
 echo "  CXX = $CXX"
 echo "  NUM_CORES = $NUM_CORES"
-if [[ -n "$LUAJIT_CC" ]]; then
-    echo "  LUAJIT_CC = $LUAJIT_CC"
-fi
-if [[ -n "$LUAJIT_HOST_CC" ]]; then
-    echo "  LUAJIT_HOST_CC = $LUAJIT_HOST_CC"
-fi
 
 # Clean old build files
 rm -Rf Build/
