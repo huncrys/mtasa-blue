@@ -6,7 +6,6 @@
 : "${BUILD_CONFIG:=release}"
 : "${PREMAKE_FILE:=premake5.lua}"
 : "${GCC_VERSION:=10}"
-: "${LUAJIT_CC:=gcc-${GCC_VERSION}}"
 
 # Find premake binary location
 if [ "$(uname)" == "Darwin" ]; then
@@ -62,10 +61,9 @@ esac
 case $BUILD_ARCHITECTURE in
     32|x86)
         CONFIG=${BUILD_CONFIG}_x86
-        : "${AR:=x86_64-linux-gnu-gcc-ar-${GCC_VERSION}}"
-        : "${CC:=x86_64-linux-gnu-gcc-${GCC_VERSION}}"
-        : "${CXX:=x86_64-linux-gnu-g++-${GCC_VERSION}}"
-        LUAJIT_CC="${LUAJIT_CC} -m32"
+        : "${AR:=i686-linux-gnu-gcc-ar-${GCC_VERSION}}"
+        : "${CC:=i686-linux-gnu-gcc-${GCC_VERSION}}"
+        : "${CXX:=i686-linux-gnu-g++-${GCC_VERSION}}"
     ;;
     64|x64)
         CONFIG=${BUILD_CONFIG}_x64
@@ -79,7 +77,6 @@ case $BUILD_ARCHITECTURE in
         : "${AR:=arm-linux-gnueabihf-ar}"
         : "${CC:=arm-linux-gnueabihf-gcc-${GCC_VERSION}}"
         : "${CXX:=arm-linux-gnueabihf-g++-${GCC_VERSION}}"
-        LUAJIT_HOST_CC="x86_64-linux-gnu-${LUAJIT_CC} -m32"
     ;;
     arm64)
         CONFIG=${BUILD_CONFIG}_${BUILD_ARCHITECTURE}
@@ -93,7 +90,9 @@ case $BUILD_ARCHITECTURE in
         exit 1
 esac
 
-export LUAJIT_CC LUAJIT_HOST_CC
+# Exported so vendor/luajit/premake5.lua can derive LuaJIT's own CC/HOST_CC
+# from the same toolchain selection instead of duplicating it here.
+export CC GCC_VERSION
 
 echo "  OS = $BUILD_OS"
 echo "  CONFIG = $CONFIG"
@@ -101,12 +100,6 @@ echo "  AR = $AR"
 echo "  CC = $CC"
 echo "  CXX = $CXX"
 echo "  NUM_CORES = $NUM_CORES"
-if [[ -n "$LUAJIT_CC" ]]; then
-    echo "  LUAJIT_CC = $LUAJIT_CC"
-fi
-if [[ -n "$LUAJIT_HOST_CC" ]]; then
-    echo "  LUAJIT_HOST_CC = $LUAJIT_HOST_CC"
-fi
 
 # Clean old build files
 rm -Rf Build/
