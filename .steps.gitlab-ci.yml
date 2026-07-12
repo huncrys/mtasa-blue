@@ -56,7 +56,7 @@ prepare [$[[ inputs.platform ]]]:
 build [$[[ inputs.platform ]]]:
   stage: build
   image:
-    name: ${CI_REGISTRY_IMAGE}/build:multiarch
+    name: ${CI_REGISTRY}/mta/builder:latest
     entrypoint: [""]
   needs:
     - prepare [$[[ inputs.platform ]]]
