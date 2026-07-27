@@ -53,19 +53,20 @@ project "Dbconmy"
 			})
 		}
 
-	if GLIBC_COMPAT then
-		filter { "system:linux" }
-			buildoptions { "-pthread" }
-			linkoptions { "-l:libmysqlclient.a", "-pthread", "-lssl", "-lcrypto" }
-			links { "z", "dl", "m" }
-	else
-		filter "system:not windows"
-			links { "mysqlclient" }
-		filter {"system:linux", "platforms:x86"}
-			libdirs { "/usr/lib32/mysql" }
-		filter {"system:linux", "platforms:x64"}
-			libdirs { "/usr/lib64/mysql" }
-	end
+	-- Always link libmysqlclient statically on Linux: distributions have moved to
+	-- MariaDB, so libmysqlclient.so.21 (and its versioned symbols) is not
+	-- available at runtime on a modern base image. OpenSSL stays dynamic.
+	filter "system:linux"
+		buildoptions { "-pthread" }
+		linkoptions { "-l:libmysqlclient.a", "-pthread", "-lssl", "-lcrypto" }
+		links { "z", "dl", "m" }
+	filter { "system:linux", "platforms:x86" }
+		libdirs { "/usr/lib32/mysql" }
+	filter { "system:linux", "platforms:x64" }
+		libdirs { "/usr/lib64/mysql" }
+
+	filter "system:macosx"
+		links { "mysqlclient" }
 
 	filter { "system:windows", "platforms:x64" }
 		links { "../../vendor/mysql/lib/x64/libmysql.lib" }
