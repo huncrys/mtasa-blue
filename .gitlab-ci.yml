@@ -1,7 +1,5 @@
 stages:
-  - prepare
   - build
-  - package
   - upload
   - release
   - index
@@ -9,51 +7,134 @@ stages:
 variables:
   FF_DISABLE_UMASK_FOR_DOCKER_EXECUTOR: "true"
   PUBLIC_BASE_URL: https://nightly.mtasa.hu/luajit
+  NET_BASE_URL: https://nightly.mtasa.hu/net/by-netcode
   OUTPUT_DIR: Bin/server
   BUILD_OVERRIDES: Shared/build_overrides.h
   NUM_CORES: 16
 
-include:
-  - local: .steps.gitlab-ci.yml
-    inputs:
-      platform: x86
-  - local: .steps.gitlab-ci.yml
-    inputs:
-      platform: x64
-#  - local: .steps.gitlab-ci.yml
-#    inputs:
-#      platform: arm
-#  - local: .steps.gitlab-ci.yml
-#    inputs:
-#      platform: arm64
+build:
+  stage: build
+  image:
+    name: ${CI_REGISTRY}/mta/builder:latest-extras
+    entrypoint: [""]
+  parallel:
+    matrix:
+      - TARGET_PLATFORM: [linux/386, linux/amd64, linux/arm/v7, linux/arm64]
+  artifacts:
+    paths:
+      - packages
+  before_script:
+    - |-
+      set -e
+      case "$TARGET_PLATFORM" in
+        linux/386)    ARCH=x86;   NET_MODULE=net;       NET_DIR="${OUTPUT_DIR}";       PACKAGE_SUFFIX=       ;;
+        linux/amd64)  ARCH=x64;   NET_MODULE=net_64;    NET_DIR="${OUTPUT_DIR}/x64";   PACKAGE_SUFFIX=_x64   ;;
+        linux/arm/v7) ARCH=arm;   NET_MODULE=net_arm;   NET_DIR="${OUTPUT_DIR}/arm";   PACKAGE_SUFFIX=_arm   ;;
+        linux/arm64)  ARCH=arm64; NET_MODULE=net_arm64; NET_DIR="${OUTPUT_DIR}/arm64"; PACKAGE_SUFFIX=_arm64 ;;
+      esac
+
+      # Both the net module and its matching build overrides are keyed by the
+      # server net module version this source tree expects, so they always stay
+      # in sync with Shared/sdk/version.h.
+      version_define() { awk -v name="$1" '$1 == "#define" && $2 == name { print $3; exit }' Shared/sdk/version.h; }
+      NET_VERSION="$(version_define MTASA_VERSION_MAJOR).$(version_define MTASA_VERSION_MINOR).$(version_define MTASA_VERSION_MAINTENANCE)"
+      NETCODE=$(printf '0x%X' "$(version_define _SERVER_NET_MODULE_VERSION)")
+      NET_URL="${NET_BASE_URL}/${NET_MODULE}-${NETCODE}.so"
+
+      # Fetch before building, so a missing net module fails the job early.
+      mkdir -p netmodule
+      curl -fsSL -o netmodule/net.so "${NET_URL}"
+      curl -fsSL -o "${BUILD_OVERRIDES}" "${NET_URL}.h"
+
+      NET_REVISION=$(awk '$1 == "#define" && $2 == "MTASA_VERSION_BUILD" { print $3; exit }' "${BUILD_OVERRIDES}")
+      PACKAGE="multitheftauto_linux${PACKAGE_SUFFIX}-${NET_VERSION}-luajit-${NET_REVISION}"
+
+      ci-log info Prepared environment
+      ci-logf info ' - net module: %s\n' "${NET_URL}"
+      ci-logf info ' - %s\n' "NET_VERSION=${NET_VERSION}" "NET_REVISION=${NET_REVISION}" "PACKAGE=${PACKAGE}"
+  script:
+    # linux-build.sh wipes Bin/, so the net module is installed after the build.
+    - ./linux-build.sh --arch="$ARCH"
+    - mkdir -p "$NET_DIR" "${OUTPUT_DIR}/mods/deathmatch"
+    - cp netmodule/net.so "${NET_DIR}/net.so"
+    - cp Server/output/* "$OUTPUT_DIR"
+    - find "$OUTPUT_DIR" -type f -name '*.so' -exec chmod -x "{}" +
+    - mv "$OUTPUT_DIR" "$PACKAGE"
+    - mkdir -p packages
+    - tar --owner=0 --group=0 -cvaf "packages/${PACKAGE}.tar.xz" "$PACKAGE"
+  tags:
+    - platform:linux/amd64
+  rules:
+    - if: $CI_COMMIT_BRANCH
+
+upload:
+  stage: upload
+  image: ${CI_REGISTRY}/oaklab/ci-tools:stable
+  needs:
+    - build
+  variables:
+    GIT_STRATEGY: none
+  artifacts:
+    paths:
+      - assets
+  before_script:
+    - eval "$(setup-rclone)"
+  script:
+    - >-
+      rclone copy
+      --stats-log-level NOTICE --stats 9999h
+      packages/ "s3:$S3_BUCKET/luajit/"
+    # Assets are grouped by release tag: the net module revision may differ
+    # between architectures, which then yields one release per revision.
+    - |-
+      set -e
+      for path in packages/*; do
+        package=$(basename "${path}")
+        name=${package%.tar.xz}
+        version=${name#*-}; version=${version%%-*}
+        revision=${name##*-}
+        tag="${version}-r${revision}"
+
+        mkdir -p "assets/${tag}"
+        package_url="${PUBLIC_BASE_URL}/${package}"
+        echo "{\"name\":\"${package}\",\"direct_asset_path\":\"/${package}\",\"url\":\"${package_url}\",\"link_type\":\"package\"}" > "assets/${tag}/${package}.json"
+      done
+  tags:
+    - platform:any
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
 release:
   stage: release
   image: ${CI_REGISTRY}/oaklab/ci-tools:stable
   needs:
-    - prepare [x86]
-    - upload [x86]
-    - upload [x64]
-#    - upload [arm]
-#    - upload [arm64]
+    - upload
   variables:
     GIT_STRATEGY: none
   before_script:
     - eval "$(setup-glab)"
   script:
-    - RELEASE_TAG="${NET_VERSION}-r${NET_REVISION}"
-    - ASSETS="[$(cat assets/* | sed '/^$/d' | tr '\n' ',' | sed 's/,$//')]"
-    - >-
-      glab release delete "${RELEASE_TAG}"
-      --repo "${CI_PROJECT_PATH}"
-      --with-tag --yes
-      || true
-    - >-
-      glab release create "${RELEASE_TAG}"
-      --repo "${CI_PROJECT_PATH}"
-      --ref "${CI_COMMIT_SHA}"
-      --name "${RELEASE_TAG}"
-      --assets-links "${ASSETS}"
+    # One release per net module revision: architectures that share a revision
+    # end up in the same release, the others get their own.
+    - |-
+      set -e
+      for assets_dir in assets/*/; do
+        [ -d "${assets_dir}" ] || continue
+        RELEASE_TAG=$(basename "${assets_dir}")
+        ASSETS="[$(cat "${assets_dir}"* | sed '/^$/d' | tr '\n' ',' | sed 's/,$//')]"
+        ci-logf info 'Release %s: %s' "${RELEASE_TAG}" "${ASSETS}"
+
+        glab release delete "${RELEASE_TAG}" \
+          --repo "${CI_PROJECT_PATH}" \
+          --with-tag --yes \
+          || true
+
+        glab release create "${RELEASE_TAG}" \
+          --repo "${CI_PROJECT_PATH}" \
+          --ref "${CI_COMMIT_SHA}" \
+          --name "${RELEASE_TAG}" \
+          --assets-links "${ASSETS}"
+      done
   tags:
     - platform:any
   rules:
