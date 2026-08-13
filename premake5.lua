@@ -66,13 +66,6 @@ newoption {
 	allowed     = { { "on" }, { "off" } },
 }
 
-newoption {
-	trigger     = "fork-luajit-sandbox",
-	value       = "on|off",
-	description = "Re-sandbox LuaJIT builds: drop io/package/ffi from scripts (default: off; only meaningful with --lua=jit)",
-	allowed     = { { "on" }, { "off" } },
-}
-
 -- Resolve the Lua VM and fork feature toggles into globals consumed by
 -- Server/mods/deathmatch/premake5.lua and the vendor include list below.
 local stock = _OPTIONS["stock"] ~= nil
@@ -94,9 +87,6 @@ end
 FORK_DEFINES = {}
 if LUA_VM == "jit" then
 	table.insert(FORK_DEFINES, "MTA_FORK_LUAJIT")
-	if _OPTIONS["fork-luajit-sandbox"] == "on" then
-		table.insert(FORK_DEFINES, "MTA_FORK_LUAJIT_SANDBOX")
-	end
 end
 if forkFeature("fork-hidden-commands") then
 	table.insert(FORK_DEFINES, "MTA_FORK_HIDDEN_COMMANDS")

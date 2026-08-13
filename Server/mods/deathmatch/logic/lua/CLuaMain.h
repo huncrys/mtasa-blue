@@ -111,9 +111,6 @@ public:
 
 private:
     void InitSecurity();
-#ifdef MTA_FORK_LUAJIT_SANDBOX
-    void InitSecurityLuaJIT();
-#endif
     void InitClasses(lua_State* luaVM);
 
 public:
