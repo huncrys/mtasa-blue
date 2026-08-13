@@ -16,11 +16,20 @@ extern "C"
 #include "lua.h"
 #include "lualib.h"
 #include "lauxlib.h"
+#ifdef MTA_FORK_LUAJIT
+    #include "luajit.h"
+#endif
 }
 
 #include "CLuaFunctionRef.h"
 
 #define TO_ELEMENTID(x) ((ElementID) reinterpret_cast<unsigned long>(x))
+
+// acl.xml function rights are enforced from a hook inside the patched Lua VM's
+// luaD_precall. LuaJIT has no such hook, but its LUAJIT_MODE_WRAPCFUNC does the same
+// job: the VM calls G(L)->wrapf(L, f) in place of f(L). MTA_FUNCTION_ACL_WRAPPER is
+// set by premake (see --function-acl) rather than derived here, so it does not depend
+// on which header happens to be included first.
 
 class CVector2D;
 
@@ -51,6 +60,7 @@ void lua_pushmatrix(lua_State* luaVM, const CMatrix& matrix);
 
 class CLuaMain&  lua_getownercluamain(lua_State* L);
 class CResource& lua_getownerresource(lua_State* L);
+
 
 // Internal use
 void lua_initclasses(lua_State* luaVM);
@@ -99,22 +109,5 @@ struct SLuaDebugInfo
     int     infoType;
 };
 
-#ifdef MTA_FORK_LUAJIT
-// LuaJIT wrapper for lua_getmainstate
-inline lua_State* lua_getmainstate(lua_State* luaVM)
-{
-    lua_getfield(luaVM, LUA_REGISTRYINDEX, "lua.mainstate");
-    lua_State * mainstate = reinterpret_cast<lua_State*>(lua_touserdata(luaVM, -1));
-    lua_pop(luaVM, 1);
-    return mainstate;
-}
-
-// LuaJIT wrapper for lua_getmtasaowner
-inline void* lua_getmtasaowner(lua_State* luaVM)
-{
-    lua_getfield(luaVM, LUA_REGISTRYINDEX, "lua.mtasaowner");
-    void * mtasaowner = lua_touserdata(luaVM, -1);
-    lua_pop(luaVM, 1);
-    return mtasaowner;
-}
-#endif
+// lua_getmainstate and lua_getmtasaowner are provided by both VMs directly: the
+// MTA-patched Lua 5.1 keeps the owner in lua_State, vendored LuaJIT in global_State.

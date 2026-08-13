@@ -662,6 +662,11 @@ typedef struct global_State {
   MRef ctype_state;	/* Pointer to C type state. */
   PRNGState prng;	/* Global PRNG state. */
   GCRef gcroot[GCROOT_MAX];  /* GC roots. */
+  /* MTA Specific: pointer to this state's CLuaMain, mirroring the field the
+  ** MTA-patched Lua 5.1 keeps in lua_State. Appended at the tail so the offsets
+  ** buildvm bakes into the generated VM are unaffected. Held here rather than in
+  ** lua_State so coroutines see it without any propagation on lua_newthread. */
+  void *mtasaowner;
 } global_State;
 
 #define mainthread(g)	(&gcref(g->mainthref)->th)
@@ -1035,10 +1040,29 @@ LJ_ASMF LJ_CONSTF int64_t lj_vm_num2int_check(double x);
 ** The uint64_t conversion accepts the union of the unsigned + signed range.
 */
 LJ_ASMF LJ_CONSTF int64_t lj_vm_num2i64(double x);
-LJ_ASMF LJ_CONSTF int64_t lj_vm_num2u64(double x);
+LJ_ASMF LJ_CONSTF uint64_t lj_vm_num2u64(double x);
+
+#if LJ_TARGET_X86
+
+LJ_ASMF LJ_CONSTF int64_t lj_vm_num2i64_sse3(double x);
+LJ_ASMF LJ_CONSTF uint64_t lj_vm_num2u64_sse3(double x);
+LJ_ASMF int64_t (*lj_vm_num2i64_ptr)(double x);
+LJ_ASMF uint64_t (*lj_vm_num2u64_ptr)(double x);
+static LJ_AINLINE int64_t lj_num2i64(double x)
+{
+  return (*lj_vm_num2i64_ptr)(x);
+}
+static LJ_AINLINE uint64_t lj_num2u64(double x)
+{
+  return (*lj_vm_num2u64_ptr)(x);
+}
+
+#else
 
 #define lj_num2i64(x)		(lj_vm_num2i64((x)))
 #define lj_num2u64(x)		(lj_vm_num2u64((x)))
+
+#endif
 
 /* Lua BitOp conversion semantics use the 2^52 + 2^51 trick. */
 LJ_ASMF LJ_CONSTF int32_t lj_vm_tobit(double x);

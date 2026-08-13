@@ -201,14 +201,26 @@ void CLuaMain::Initialize()
     assert(!m_luaVM);
 
     // Create a new VM
-#ifdef MTA_FORK_LUAJIT
-    m_luaVM = lua_open();
-    lua_pushlightuserdata(m_luaVM, m_luaVM);
-    lua_setfield(m_luaVM, LUA_REGISTRYINDEX, "lua.mainstate");
-    lua_pushlightuserdata(m_luaVM, this);
-    lua_setfield(m_luaVM, LUA_REGISTRYINDEX, "lua.mtasaowner");
-#else
+    // Both VMs take the owner here: the patched Lua 5.1 keeps it in lua_State, the
+    // vendored LuaJIT in global_State. Holding it there rather than in the registry
+    // is what stops debug.getregistry() handing scripts a printable CLuaMain pointer,
+    // and makes the lookup a field read instead of a string-keyed hash on every
+    // native call. The main state needs no storing at all - LuaJIT already tracks it
+    // as global_State::mainthref.
     m_luaVM = lua_open(this);
+
+#ifdef MTA_FUNCTION_ACL_WRAPPER
+    // Route every externally registered C function through the ACL check. This is
+    // LuaJIT's stand-in for the patched Lua 5.1 pre-call hook: the VM calls
+    // wrapf(L, f) instead of f(L) straight from its assembly, so no wrapper closure
+    // is involved. Only bc_cfunc_ext is affected, leaving LuaJIT's own built-ins on
+    // the normal path.
+    lua_pushlightuserdata(m_luaVM, reinterpret_cast<void*>(CLuaDefs::CallWithACLCheck));
+
+    if (!luaJIT_setmode(m_luaVM, -1, LUAJIT_MODE_WRAPCFUNC | LUAJIT_MODE_ON))
+        CLogger::ErrorPrintf("Failed to install the Lua function rights hook - acl.xml function rights will not be enforced\n");
+
+    lua_pop(m_luaVM, 1);
 #endif
     m_pLuaManager->OnLuaMainOpenVM(this, m_luaVM);
 
