@@ -99,6 +99,7 @@ struct SLuaDebugInfo
     int     infoType;
 };
 
+#ifdef MTA_FORK_LUAJIT
 // LuaJIT wrapper for lua_getmainstate
 inline lua_State* lua_getmainstate(lua_State* luaVM)
 {
@@ -116,3 +117,4 @@ inline void* lua_getmtasaowner(lua_State* luaVM)
     lua_pop(luaVM, 1);
     return mtasaowner;
 }
+#endif

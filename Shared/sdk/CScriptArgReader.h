@@ -621,11 +621,19 @@ public:
         {
             size_t      length;
             const char* str = lua_tolstring(m_luaVM, m_iIndex, &length);
+#ifdef MTA_FORK_LUAJIT
             m_iIndex++;
+#else
+            unsigned    hash = lua_tostringhash(m_luaVM, m_iIndex++);
+#endif
 
             try
             {
+#ifdef MTA_FORK_LUAJIT
                 outValue = CStringName(std::string_view(str, length));
+#else
+                outValue = CStringName::FromStringAndHash(std::string_view(str, length), hash);
+#endif
             }
             catch (const std::bad_alloc&)
             {

@@ -24,8 +24,12 @@ extern "C"
 
 inline void LUA_CHECKSTACK(lua_State* L, int size)
 {
-    //if (lua_getstackgap(L) < size + 5)
+#ifdef MTA_FORK_LUAJIT
+    lua_checkstack(L, (size + 2) * 3 + 4);
+#else
+    if (lua_getstackgap(L) < size + 5)
         lua_checkstack(L, (size + 2) * 3 + 4);
+#endif
 }
 
 class CAccessControlList;

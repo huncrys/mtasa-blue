@@ -9,6 +9,13 @@
 
 #define LUA_GC_EXTRA_BYTES 30  // Used in hack to make lua GC more aggressive when using OOP Matrix & Vector
 
+// lua_addtotalbytes is an MTA extension to the Lua C API that LuaJIT builds don't have
+#ifdef MTA_FORK_LUAJIT
+    #define MTA_LUA_ADDTOTALBYTES(luaVM, n) ((void)0)
+#else
+    #define MTA_LUA_ADDTOTALBYTES(luaVM, n) lua_addtotalbytes(luaVM, n)
+#endif
+
 // Lua function definitions (shared)
 #include "luadefs/CLuaBitDefs.h"
 #include "luadefs/CLuaCryptDefs.h"

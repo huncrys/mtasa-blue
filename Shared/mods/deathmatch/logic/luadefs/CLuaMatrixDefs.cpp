@@ -130,7 +130,7 @@ int CLuaMatrixDefs::Destroy(lua_State* luaVM)
     if (!argStream.HasErrors())
     {
         delete pMatrix;
-        //lua_addtotalbytes(luaVM, -LUA_GC_EXTRA_BYTES);
+        MTA_LUA_ADDTOTALBYTES(luaVM, -LUA_GC_EXTRA_BYTES);
         lua_pushboolean(luaVM, true);
         return 1;
     }
