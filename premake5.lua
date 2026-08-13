@@ -23,6 +23,94 @@ newoption {
 	description = "Prefix to be prepended to commands used by the GCC toolchain (for cross-building)",
 }
 
+newoption {
+	trigger     = "lua",
+	value       = "VM",
+	description = "Lua VM the server scripting runs on (default: jit; forced to stock on Windows)",
+	allowed     = {
+		{ "jit",   "LuaJIT 2.1" },
+		{ "stock", "MTA-patched Lua 5.1 (upstream)" },
+	},
+}
+
+newoption {
+	trigger     = "stock",
+	description = "Build the stock upstream flavor: --lua defaults to stock and all --fork-* toggles to off (explicit values still win)",
+}
+
+newoption {
+	trigger     = "fork-hidden-commands",
+	value       = "on|off",
+	description = "Remove built-in account/chat console commands (msg, nick, login, ...) (default: on, off with --stock)",
+	allowed     = { { "on" }, { "off" } },
+}
+
+newoption {
+	trigger     = "fork-open-http-login",
+	value       = "on|off",
+	description = "Skip the serial/IP check on HTTP logins (default: on, off with --stock)",
+	allowed     = { { "on" }, { "off" } },
+}
+
+newoption {
+	trigger     = "fork-raised-maxplayers",
+	value       = "on|off",
+	description = "Let setMaxPlayers raise the player limit up to MAX_PLAYER_COUNT (default: on, off with --stock)",
+	allowed     = { { "on" }, { "off" } },
+}
+
+newoption {
+	trigger     = "fork-setservername",
+	value       = "on|off",
+	description = "Add the setServerName scripting function (default: on, off with --stock)",
+	allowed     = { { "on" }, { "off" } },
+}
+
+newoption {
+	trigger     = "fork-luajit-sandbox",
+	value       = "on|off",
+	description = "Re-sandbox LuaJIT builds: drop io/package/ffi from scripts (default: off; only meaningful with --lua=jit)",
+	allowed     = { { "on" }, { "off" } },
+}
+
+-- Resolve the Lua VM and fork feature toggles into globals consumed by
+-- Server/mods/deathmatch/premake5.lua and the vendor include list below.
+local stock = _OPTIONS["stock"] ~= nil
+
+LUA_VM = _OPTIONS["lua"] or (stock and "stock" or "jit")
+if os.target() == "windows" and LUA_VM ~= "stock" then
+	print("Warning: LuaJIT is not supported on Windows targets, forcing --lua=stock")
+	LUA_VM = "stock"
+end
+
+local function forkFeature(trigger)
+	local value = _OPTIONS[trigger]
+	if value == nil then
+		return not stock
+	end
+	return value == "on"
+end
+
+FORK_DEFINES = {}
+if LUA_VM == "jit" then
+	table.insert(FORK_DEFINES, "MTA_FORK_LUAJIT")
+	if _OPTIONS["fork-luajit-sandbox"] == "on" then
+		table.insert(FORK_DEFINES, "MTA_FORK_LUAJIT_SANDBOX")
+	end
+end
+if forkFeature("fork-hidden-commands") then
+	table.insert(FORK_DEFINES, "MTA_FORK_HIDDEN_COMMANDS")
+end
+if forkFeature("fork-open-http-login") then
+	table.insert(FORK_DEFINES, "MTA_FORK_OPEN_HTTP_LOGIN")
+end
+if forkFeature("fork-raised-maxplayers") then
+	table.insert(FORK_DEFINES, "MTA_FORK_RAISED_MAXPLAYERS")
+end
+if forkFeature("fork-setservername") then
+	table.insert(FORK_DEFINES, "MTA_FORK_SETSERVERNAME")
+end
+
 workspace "MTASA"
 	configurations {"Debug", "Release", "Nightly"}
 
@@ -202,7 +290,10 @@ workspace "MTASA"
 		include "vendor/ehs"
 		include "vendor/google-breakpad"
 		include "vendor/json-c"
-		include "vendor/luajit"
+		include "vendor/lua"
+		if LUA_VM == "jit" then
+			include "vendor/luajit"
+		end
 		include "vendor/mbedtls"
 		include "vendor/pcre"
 		include "vendor/pme"
