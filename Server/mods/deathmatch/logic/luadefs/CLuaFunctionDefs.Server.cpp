@@ -310,13 +310,14 @@ int CLuaFunctionDefs::Get(lua_State* luaVM)
     return 1;
 }
 
+#ifdef MTA_FORK_SETSERVERNAME
 int CLuaFunctionDefs::SetServerName(lua_State* luaVM)
 {
     CScriptArgReader argStream(luaVM);
     SString strServerName;
-    
+
     argStream.ReadString(strServerName);
-    
+
     if (!argStream.HasErrors())
     {
         if (CStaticFunctionDefinitions::SetServerName(strServerName))
@@ -333,6 +334,7 @@ int CLuaFunctionDefs::SetServerName(lua_State* luaVM)
     lua_pushboolean(luaVM, false);
     return 1;
 }
+#endif
 
 int CLuaFunctionDefs::SetServerConfigSetting(lua_State* luaVM)
 {

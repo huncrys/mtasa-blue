@@ -10620,8 +10620,13 @@ unsigned int CStaticFunctionDefinitions::GetMaxPlayers()
 
 bool CStaticFunctionDefinitions::SetMaxPlayers(unsigned int uiMax)
 {
+#ifdef MTA_FORK_RAISED_MAXPLAYERS
     if (uiMax > MAX_PLAYER_COUNT)
         return false;
+#else
+    if (uiMax > m_pMainConfig->GetHardMaxPlayers())
+        return false;
+#endif
     m_pMainConfig->SetSoftMaxPlayers(uiMax);
     g_pNetServer->SetMaximumIncomingConnections(static_cast<unsigned short>(uiMax));
     g_pGame->GetPlayerManager()->BroadcastOnlyJoined(CServerInfoSyncPacket(SERVER_INFO_FLAG_MAX_PLAYERS));
@@ -11710,6 +11715,7 @@ bool CStaticFunctionDefinitions::SetPlayerAnnounceValue(CElement* pElement, cons
     return false;
 }
 
+#ifdef MTA_FORK_SETSERVERNAME
 bool CStaticFunctionDefinitions::SetServerName(const std::string strServerName)
 {
     if (strServerName != "")
@@ -11719,6 +11725,7 @@ bool CStaticFunctionDefinitions::SetServerName(const std::string strServerName)
     }
     return false;
 }
+#endif
 
 void CStaticFunctionDefinitions::ExecuteSQLCreateTable(const std::string& strTable, const std::string& strDefinition)
 {
