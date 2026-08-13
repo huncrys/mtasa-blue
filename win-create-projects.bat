@@ -9,7 +9,7 @@ if defined PREMAKE_FILE (
     set "PREMAKE5_FLAGS="
 )
 
-rem Extra premake options, e.g. --lua=stock or --fork-* feature toggles
+rem Extra premake options, e.g. --lua=stock, --function-acl=off or --fork-* toggles
 if defined PREMAKE5_EXTRA (
     set "PREMAKE5_FLAGS=%PREMAKE5_FLAGS% %PREMAKE5_EXTRA%"
 )
