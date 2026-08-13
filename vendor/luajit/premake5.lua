@@ -88,7 +88,12 @@ local function default_host_cc(bits, gcc_version)
 	return nil
 end
 
-local luajit_make = "@+${MAKE} -C ../vendor/luajit BUILDMODE=static XCFLAGS=-fPIC TARGET_T=libluajit.a"
+-- LUAJIT_DISABLE_FFI leaves the FFI out of the build entirely, so ffi.C.system and
+-- friends cannot be reached however the libraries are opened. It has to go through
+-- XCFLAGS rather than a per-file define: the Makefile feeds XCFLAGS into both
+-- HOST_ACFLAGS and the target flags, so buildvm generates a VM that agrees with the
+-- core about FFI being absent.
+local luajit_make = "@+${MAKE} -C ../vendor/luajit BUILDMODE=static XCFLAGS=\"-fPIC -DLUAJIT_DISABLE_FFI\" TARGET_T=libluajit.a"
 
 -- LUAJIT_CC controls the compiler LuaJIT's build uses for its target objects
 -- and for auto-detecting its own target architecture (it runs $(TARGET_CC)

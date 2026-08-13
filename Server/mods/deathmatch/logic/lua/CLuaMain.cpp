@@ -157,35 +157,6 @@ void CLuaMain::InitSecurity()
     lua_register(m_luaVM, "newproxy", CLuaUtilDefs::DisabledFunction);
 }
 
-#ifdef MTA_FORK_LUAJIT_SANDBOX
-// Remove what luaL_openlibs opened beyond the upstream library set: the io and
-// package libraries, and the preloaded ffi module. Clearing the globals alone is
-// not enough - the registry keeps them reachable through debug.getregistry()
-// (_PRELOAD holds luaopen_ffi, _LOADED holds the io and package tables).
-void CLuaMain::InitSecurityLuaJIT()
-{
-    lua_pushnil(m_luaVM);
-    lua_setglobal(m_luaVM, "io");
-    lua_pushnil(m_luaVM);
-    lua_setglobal(m_luaVM, "package");
-    lua_pushnil(m_luaVM);
-    lua_setglobal(m_luaVM, "module");
-
-    lua_pushnil(m_luaVM);
-    lua_setfield(m_luaVM, LUA_REGISTRYINDEX, "_PRELOAD");
-
-    lua_getfield(m_luaVM, LUA_REGISTRYINDEX, "_LOADED");
-    if (lua_istable(m_luaVM, -1))
-    {
-        lua_pushnil(m_luaVM);
-        lua_setfield(m_luaVM, -2, "io");
-        lua_pushnil(m_luaVM);
-        lua_setfield(m_luaVM, -2, "package");
-    }
-    lua_pop(m_luaVM, 1);
-}
-#endif
-
 void CLuaMain::InitClasses(lua_State* luaVM)
 {
     lua_initclasses(luaVM);
@@ -246,7 +217,40 @@ void CLuaMain::Initialize()
 
     // Load LUA libraries
 #ifdef MTA_FORK_LUAJIT
-    luaL_openlibs(m_luaVM);
+    // Open the upstream library set only, never luaL_openlibs: that would also open
+    // package and io, which hand scripts native code execution through
+    // package.loadlib and io.popen - something the ACL model cannot contain. Opening
+    // nothing extra means there is nothing to strip afterwards. (The FFI, the worst
+    // of the three, is not compiled in at all - see LUAJIT_DISABLE_FFI in
+    // vendor/luajit/premake5.lua.)
+    //
+    // jit is the one addition, and it is load-bearing rather than cosmetic: jit_init
+    // is the only place that sets JIT_F_ON, so skipping it leaves the compiler off.
+    //
+    // LuaJIT's luaopen_* expect the module name on the stack, so they have to be
+    // called this way rather than directly (see luaL_openlibs in lib_init.c).
+    static const luaL_Reg luaLibs[] = {{"", luaopen_base},
+                                       {LUA_MATHLIBNAME, luaopen_math},
+                                       {LUA_STRLIBNAME, luaopen_string},
+                                       {LUA_TABLIBNAME, luaopen_table},
+                                       {LUA_DBLIBNAME, luaopen_debug},
+                                       {LUA_UTFLIBNAME, luaopen_utf8},
+                                       {LUA_OSLIBNAME, luaopen_os},
+                                       {LUA_JITLIBNAME, luaopen_jit},
+                                       {NULL, NULL}};
+
+    for (const luaL_Reg* pLib = luaLibs; pLib->func; pLib++)
+    {
+        lua_pushcfunction(m_luaVM, pLib->func);
+        lua_pushstring(m_luaVM, pLib->name);
+        lua_call(m_luaVM, 1, 0);
+    }
+
+    // luaopen_jit preloads jit.util and jit.profile into the registry _PRELOAD table.
+    // require is gone with the package library, but debug.getregistry() still reaches
+    // them, so drop the table.
+    lua_pushnil(m_luaVM);
+    lua_setfield(m_luaVM, LUA_REGISTRYINDEX, "_PRELOAD");
 #else
     luaopen_base(m_luaVM);
     luaopen_math(m_luaVM);
@@ -258,14 +262,7 @@ void CLuaMain::Initialize()
 #endif
 
     // Initialize security restrictions. Very important to prevent lua trojans and viruses!
-#ifdef MTA_FORK_LUAJIT
-    #ifdef MTA_FORK_LUAJIT_SANDBOX
     InitSecurity();
-    InitSecurityLuaJIT();
-    #endif
-#else
-    InitSecurity();
-#endif
 
     // Registering C functions
     CLuaCFunctions::RegisterFunctionsWithVM(m_luaVM);
