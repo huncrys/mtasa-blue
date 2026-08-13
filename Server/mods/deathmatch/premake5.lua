@@ -26,7 +26,7 @@ project "Deathmatch"
 			"../../../vendor/zlib",
 			"../../../vendor/pcre2",
 			"../../../vendor/json-c",
-			"../../../vendor/luajit/src",
+			LUA_VM == "jit" and "../../../vendor/luajit/src" or "../../../vendor/lua/src",
 			"../../../Shared/gta",
 			"../../../Shared/mods/deathmatch/logic",
 			"../../../Shared/animation",
@@ -40,9 +40,16 @@ project "Deathmatch"
 		}
 
 	defines { "SDK_WITH_BCRYPT" }
-	libdirs { "../../../vendor/luajit/src" }
+	defines(FORK_DEFINES)
+	if LUA_VM == "jit" then
+		libdirs { "../../../vendor/luajit/src" }
+		links { "luajit" }
+		dependson { "LuaJIT" }
+	else
+		links { "Lua_Server" }
+	end
 	links {
-		"luajit", "sqlite", "cryptopp", "pme", "pcre2", "json-c", "zip", "glob", "zlib", "blowfish_bcrypt",
+		"sqlite", "cryptopp", "pme", "pcre2", "json-c", "zip", "glob", "zlib", "blowfish_bcrypt",
 	}
 
 	vpaths {
@@ -71,7 +78,11 @@ project "Deathmatch"
 	filter "system:not windows"
 		buildoptions { "-Wno-narrowing -Wno-nonnull -Wno-class-conversion" } -- We should fix the warnings at some point
 		buildoptions { "-pthread" }
-		linkoptions { "-pthread -lluajit" }
+		if LUA_VM == "jit" then
+			linkoptions { "-pthread -lluajit" }
+		else
+			linkoptions { "-pthread" }
+		end
 
 	filter "system:linux"
 		links { "rt" }
