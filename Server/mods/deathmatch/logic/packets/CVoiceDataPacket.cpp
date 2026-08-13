@@ -12,124 +12,53 @@
 #include "StdInc.h"
 #include "CVoiceDataPacket.h"
 #include "CPlayer.h"
-
-CVoiceDataPacket::CVoiceDataPacket()
-{
-    m_pBuffer = NULL;
-    m_usDataBufferSize = 0;
-    m_usActualDataLength = 0;
-
-    AllocateBuffer(1024);
-}
-
-CVoiceDataPacket::CVoiceDataPacket(CPlayer* pPlayer, const unsigned char* pbSrcBuffer, unsigned short usLength)
-{
-    m_pBuffer = NULL;
-    m_usDataBufferSize = 0;
-    m_usActualDataLength = 0;
-
-    SetSourceElement(pPlayer);
-    SetData(pbSrcBuffer, usLength);
-}
-CVoiceDataPacket::~CVoiceDataPacket()
-{
-    DeallocateBuffer();
-}
+#include "CGame.h"
+#include "CMainConfig.h"
 
 bool CVoiceDataPacket::Read(NetBitStreamInterface& BitStream)
 {
-    if (m_pBuffer)
+    CPlayer* pPlayer = GetSourcePlayer();
+    if (!pPlayer)
+        return false;
+
+    unsigned short voiceBufferLength{};
+    const auto*    mainConfig = g_pGame->GetConfig();
+    if (!BitStream.Read(voiceBufferLength) || voiceBufferLength == 0 || voiceBufferLength > mainConfig->GetMaxVoiceBufferSize())
+        return false;
+
+    const long long     now = GetTickCount64_();
+    const bool          newInterval = pPlayer->GetLastVoiceDataTime() == 0 || now - pPlayer->GetLastVoiceDataTime() >= mainConfig->GetVoicePacketsInterval();
+    const unsigned char packetsInInterval = newInterval ? 0 : pPlayer->GetVoiceDataPacketsInInterval();
+
+    if (packetsInInterval >= mainConfig->GetMaxVoicePacketsPerInterval())
+        return false;
+
+    std::vector<unsigned char> voiceBuffer(voiceBufferLength);
+    if (!BitStream.Read(reinterpret_cast<char*>(voiceBuffer.data()), voiceBuffer.size()))
+        return false;
+
+    m_voiceBuffer = std::move(voiceBuffer);
+    if (newInterval)
     {
-        BitStream.Read(m_usActualDataLength);
-        if (m_usActualDataLength)
-        {
-            // Reject oversized payloads. The declared length must fit the buffer,
-            // otherwise the relayed packet would contain data beyond what the
-            // client actually sent (read from adjacent heap memory).
-            if (m_usActualDataLength > m_usDataBufferSize)
-                return false;
-
-            // Reject truncated payloads, otherwise the uninitialized remainder
-            // of the buffer would be relayed to other players.
-            if (!BitStream.Read(reinterpret_cast<char*>(m_pBuffer), m_usActualDataLength))
-                return false;
-        }
-        return true;
+        pPlayer->SetLastVoiceDataTime(now);
+        pPlayer->SetVoiceDataPacketsInInterval(1);
     }
-
-    return false;
+    else
+        pPlayer->IncrementVoiceDataPacketsInInterval();
+    return true;
 }
 
 bool CVoiceDataPacket::Write(NetBitStreamInterface& BitStream) const
 {
-    if (m_usActualDataLength)
-    {
-        // Write the source player
-        ElementID ID = m_pSourceElement->GetID();
-        BitStream.Write(ID);
-        // Write the length as an unsigned short and then write the string
-        BitStream.Write(m_usActualDataLength);
-        BitStream.Write(reinterpret_cast<const char*>(m_pBuffer), m_usActualDataLength);
-        return true;
-    }
+    if (!m_pSourceElement || m_voiceBuffer.empty())
+        return false;
 
-    return false;
-}
+    const auto voiceBuffer = reinterpret_cast<const char*>(m_voiceBuffer.data());
+    const auto voiceBufferLength = static_cast<uint16_t>(m_voiceBuffer.size());
 
-void CVoiceDataPacket::AllocateBuffer(unsigned short usBufferSize)
-{
-    // Test to see if we already have an allocated buffer
-    // that will hold the requested size.
-    if (m_usDataBufferSize < usBufferSize)
-    {
-        // It's not... resize the buffer.
-        if (m_pBuffer)
-        {
-            // Free the current buffer.
-            delete[] m_pBuffer;
-        }
+    BitStream.Write(m_pSourceElement->GetID());
+    BitStream.Write(voiceBufferLength);
+    BitStream.Write(voiceBuffer, voiceBufferLength);
 
-        // Allocate new buffer.
-        m_pBuffer = new unsigned char[usBufferSize];
-
-        // Clear buffer.
-        memset(m_pBuffer, 0, usBufferSize);
-
-        // Save the new size.
-        m_usDataBufferSize = usBufferSize;
-    }
-}
-
-void CVoiceDataPacket::DeallocateBuffer()
-{
-    if (m_pBuffer)
-    {
-        delete[] m_pBuffer;
-        m_pBuffer = NULL;
-        m_usDataBufferSize = 0;
-        m_usActualDataLength = 0;
-    }
-}
-
-void CVoiceDataPacket::SetData(const unsigned char* pbSrcBuffer, unsigned short usLength)
-{
-    // Allocate new buffer.
-    AllocateBuffer(usLength);
-
-    // Copy in the data.
-    if (m_pBuffer)
-    {
-        memcpy(m_pBuffer, pbSrcBuffer, usLength);
-        m_usActualDataLength = usLength;
-    }
-}
-
-const unsigned char* CVoiceDataPacket::GetData() const
-{
-    return m_pBuffer;
-}
-
-unsigned short CVoiceDataPacket::GetDataLength() const
-{
-    return m_usActualDataLength;
+    return true;
 }

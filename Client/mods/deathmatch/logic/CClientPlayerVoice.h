@@ -28,7 +28,7 @@ public:
     ZERO_ON_NEW
     CClientPlayerVoice(CClientPlayer* pPlayer, CVoiceRecorder* pVoiceRecorder);
     ~CClientPlayerVoice();
-    void DecodeAndBuffer(char* pBuffer, unsigned int bytesWritten);
+    void DecodeAndBuffer(const unsigned char* voiceBuffer, unsigned int voiceBufferLength);
     void DoPulse();
 
     bool m_bVoiceActive;
@@ -107,4 +107,6 @@ private:
 
     SFixedArray<int, 9> m_EnabledEffects;
     SFixedArray<HFX, 9> m_FxEffects;
+
+    unsigned char m_voiceFramesThisPulse;   // Decodes per frame limit
 };
