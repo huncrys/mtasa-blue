@@ -157,6 +157,35 @@ void CLuaMain::InitSecurity()
     lua_register(m_luaVM, "newproxy", CLuaUtilDefs::DisabledFunction);
 }
 
+#ifdef MTA_FORK_LUAJIT_SANDBOX
+// Remove what luaL_openlibs opened beyond the upstream library set: the io and
+// package libraries, and the preloaded ffi module. Clearing the globals alone is
+// not enough - the registry keeps them reachable through debug.getregistry()
+// (_PRELOAD holds luaopen_ffi, _LOADED holds the io and package tables).
+void CLuaMain::InitSecurityLuaJIT()
+{
+    lua_pushnil(m_luaVM);
+    lua_setglobal(m_luaVM, "io");
+    lua_pushnil(m_luaVM);
+    lua_setglobal(m_luaVM, "package");
+    lua_pushnil(m_luaVM);
+    lua_setglobal(m_luaVM, "module");
+
+    lua_pushnil(m_luaVM);
+    lua_setfield(m_luaVM, LUA_REGISTRYINDEX, "_PRELOAD");
+
+    lua_getfield(m_luaVM, LUA_REGISTRYINDEX, "_LOADED");
+    if (lua_istable(m_luaVM, -1))
+    {
+        lua_pushnil(m_luaVM);
+        lua_setfield(m_luaVM, -2, "io");
+        lua_pushnil(m_luaVM);
+        lua_setfield(m_luaVM, -2, "package");
+    }
+    lua_pop(m_luaVM, 1);
+}
+#endif
+
 void CLuaMain::InitClasses(lua_State* luaVM)
 {
     lua_initclasses(luaVM);
