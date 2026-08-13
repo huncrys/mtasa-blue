@@ -23,6 +23,7 @@ else
 fi
 
 # Read script arguments
+PREMAKE_EXTRA_ARGS=()
 while [ $# -gt 0 ]; do
     case "$1" in
         --os=*)     BUILD_OS="${1#*=}"              ;;
@@ -30,6 +31,7 @@ while [ $# -gt 0 ]; do
         --config=*) BUILD_CONFIG="${1#*=}"          ;;
         --cores=*)  NUM_CORES="${1#*=}"             ;;
         --file=*)   PREMAKE_FILE="${1#*=}"          ;;
+        --lua=*|--stock|--fork-*=*) PREMAKE_EXTRA_ARGS+=("$1") ;;
         *)
             echo "Error: Invalid argument: $1" >&2
             exit 1
@@ -93,9 +95,9 @@ rm -Rf Bin/
 
 # Generate Makefiles
 if [[ -n "$GCC_PREFIX" ]]; then
-    $PREMAKE5 --gccprefix="$GCC_PREFIX" --os="$BUILD_OS" --file="$PREMAKE_FILE" gmake
+    $PREMAKE5 --gccprefix="$GCC_PREFIX" --os="$BUILD_OS" --file="$PREMAKE_FILE" "${PREMAKE_EXTRA_ARGS[@]}" gmake
 else
-    $PREMAKE5 --os="$BUILD_OS" --file="$PREMAKE_FILE" gmake
+    $PREMAKE5 --os="$BUILD_OS" --file="$PREMAKE_FILE" "${PREMAKE_EXTRA_ARGS[@]}" gmake
 fi
 
 # Build!
