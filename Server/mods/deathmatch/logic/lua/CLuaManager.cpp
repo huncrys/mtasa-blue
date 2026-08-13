@@ -67,7 +67,12 @@ CLuaManager::CLuaManager(CObjectManager* pObjectManager, CPlayerManager* pPlayer
     // Load our C Functions into Lua and hook callback
     LoadCFunctions();
 #ifndef MTA_FORK_LUAJIT
+    // On LuaJIT there is no pre call hook to register: acl.xml function rights are
+    // enforced through LUAJIT_MODE_WRAPCFUNC, installed in CLuaMain::Initialize.
+    // Either way the check is skipped entirely with MTA_NO_FUNCTION_ACL.
+    #ifndef MTA_NO_FUNCTION_ACL
     lua_registerPreCallHook(CLuaDefs::CanUseFunction);
+    #endif
     lua_registerUndumpHook(CLuaMain::OnUndump);
 #endif
 }

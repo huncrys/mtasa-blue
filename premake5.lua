@@ -44,6 +44,13 @@ newoption {
 }
 
 newoption {
+	trigger     = "function-acl",
+	value       = "on|off",
+	description = "Enforce acl.xml function.* rights on script calls (default: on). Applies to both Lua VMs; --stock does not affect it",
+	allowed     = { { "on" }, { "off" } },
+}
+
+newoption {
 	trigger     = "fork-hidden-commands",
 	value       = "on|off",
 	description = "Remove built-in account/chat console commands (msg, nick, login, ...) (default: on, off with --stock)",
@@ -92,6 +99,17 @@ end
 FORK_DEFINES = {}
 if LUA_VM == "jit" then
 	table.insert(FORK_DEFINES, "MTA_FORK_LUAJIT")
+end
+-- Opt out only, and deliberately not tied to forkFeature: enforcing acl.xml function
+-- rights is upstream behavior, so --stock must not switch it off. The define states
+-- the unsafe case so that a build with no defines at all still enforces.
+if _OPTIONS["function-acl"] == "off" then
+	print("Warning: acl.xml function rights will not be enforced (--function-acl=off)")
+	table.insert(FORK_DEFINES, "MTA_NO_FUNCTION_ACL")
+elseif LUA_VM == "jit" then
+	-- The patched stock VM enforces from its pre call hook. LuaJIT has no such hook,
+	-- so it enforces through LUAJIT_MODE_WRAPCFUNC instead.
+	table.insert(FORK_DEFINES, "MTA_FUNCTION_ACL_WRAPPER")
 end
 if forkFeature("fork-hidden-commands") then
 	table.insert(FORK_DEFINES, "MTA_FORK_HIDDEN_COMMANDS")

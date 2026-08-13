@@ -108,26 +108,37 @@ bool CLuaDefs::CanUseFunction(const char* szFunction, lua_State* luaVM, bool bRe
     return true;
 }
 
-int CLuaDefs::CanUseFunction(lua_CFunction f, lua_State* luaVM)
+//
+// True for functions the rights check must never apply to.
+//
+// These are for OOP and establish the function to call, at which point the function is called normally so we get this called like so:
+// Call 1: f = CLuaClassDefs::NewIndex
+// Call 2: f = setElementHealth
+// ignore new index as it isn't registered as an LuaCFunction and just throws an assert in debug/causes issues.
+//
+bool CLuaDefs::IsRightsCheckExempt(lua_CFunction f)
 {
     // Quick cull of unknown pointer range
     if (CLuaCFunctions::IsNotFunction(f))
         return true;
 
-    // these are for OOP and establish the function to call, at which point the function is called normally so we get this called like so:
-    // Call 1: f = CLuaClassDefs::NewIndex
-    // Call 2: f = setElementHealth
-    // ignore new index as it isn't registered as an LuaCFunction and just throws an assert in debug/causes issues.
-    if (f == (lua_CFunction)&CLuaClassDefs::NewIndex || f == (lua_CFunction)&CLuaClassDefs::StaticNewIndex || f == (lua_CFunction)&CLuaClassDefs::Index ||
-        f == (lua_CFunction)&CLuaClassDefs::Call || f == (lua_CFunction)&CLuaClassDefs::ToString || f == (lua_CFunction)&CLuaClassDefs::ReadOnly ||
-        f == (lua_CFunction)&CLuaClassDefs::WriteOnly)
-    {
+    return f == (lua_CFunction)&CLuaClassDefs::NewIndex || f == (lua_CFunction)&CLuaClassDefs::StaticNewIndex || f == (lua_CFunction)&CLuaClassDefs::Index ||
+           f == (lua_CFunction)&CLuaClassDefs::Call || f == (lua_CFunction)&CLuaClassDefs::ToString || f == (lua_CFunction)&CLuaClassDefs::ReadOnly ||
+           f == (lua_CFunction)&CLuaClassDefs::WriteOnly;
+}
+
+int CLuaDefs::CanUseFunction(lua_CFunction f, lua_State* luaVM)
+{
+    if (IsRightsCheckExempt(f))
         return true;
-    }
 
-    // Get associated resource
-    CResource& resource{lua_getownerresource(luaVM)};
+    // Get associated resource. Resolving it from the VM costs a registry lookup on
+    // LuaJIT, so the trampoline passes a cached one to CheckFunctionRights instead.
+    return CheckFunctionRights(f, luaVM, lua_getownerresource(luaVM));
+}
 
+int CLuaDefs::CheckFunctionRights(lua_CFunction f, lua_State* luaVM, CResource& resource)
+{
     // Since this method is used as a pre-call hook, make sure the resource is valid/running
     if (!resource.IsActive())
         return false;
@@ -208,6 +219,34 @@ int CLuaDefs::CanUseFunction(lua_CFunction f, lua_State* luaVM)
     }
     return true;
 }
+
+#ifdef MTA_FUNCTION_ACL_WRAPPER
+//
+// Stands in for the VM's pre/post call hooks on LuaJIT.
+//
+// LuaJIT has no luaD_precall hook, but it does have LUAJIT_MODE_WRAPCFUNC: with it
+// enabled the VM calls G(L)->wrapf(L, f) instead of f(L), straight from the VM
+// assembly (see BC_FUNCCW in vm_*.dasc). That is the same shape as the patched Lua
+// 5.1 pre-call hook, so no wrapper closure or upvalue juggling is needed.
+//
+// Only bc_cfunc_ext is switched, which covers externally registered C closures -
+// LuaJIT's own built-ins keep using bc_cfunc_int and are never routed through here.
+//
+int CLuaDefs::CallWithACLCheck(lua_State* luaVM, lua_CFunction f)
+{
+    if (!CanUseFunction(f, luaVM))
+        return 0;
+
+    int iResults = f(luaVM);
+
+    // CanUseFunction pushes onto the timing stack when timing is active and relies on
+    // the post call hook to pop it again, so it has to be driven from here too.
+    if (ms_bRegisterdPostCallHook)
+        DidUseFunction(f, luaVM);
+
+    return iResults;
+}
+#endif
 
 //
 // Called after a Lua function if post call hook has been installed

@@ -45,6 +45,11 @@ public:
     static bool CanUseFunction(const char* szFunction, lua_State* luaVM, bool bRestricted);
     static int  CanUseFunction(lua_CFunction f, lua_State* luaVM);
     static void DidUseFunction(lua_CFunction f, lua_State* luaVM);
+    static bool IsRightsCheckExempt(lua_CFunction f);
+    static int  CheckFunctionRights(lua_CFunction f, lua_State* luaVM, class CResource& resource);
+#ifdef MTA_FUNCTION_ACL_WRAPPER
+    static int CallWithACLCheck(lua_State* luaVM, lua_CFunction f);
+#endif
     static void LogWarningIfPlayerHasNotJoinedYet(lua_State* luaVM, CElement* pElement);
 
     // This is just for the Lua funcs. Please don't public this and use it other

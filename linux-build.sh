@@ -31,7 +31,7 @@ while [ $# -gt 0 ]; do
         --config=*) BUILD_CONFIG="${1#*=}"          ;;
         --cores=*)  NUM_CORES="${1#*=}"             ;;
         --file=*)   PREMAKE_FILE="${1#*=}"          ;;
-        --lua=*|--stock|--fork-*=*) PREMAKE_EXTRA_ARGS+=("$1") ;;
+        --lua=*|--stock|--fork-*=*|--function-acl=*) PREMAKE_EXTRA_ARGS+=("$1") ;;
         *)
             echo "Error: Invalid argument: $1" >&2
             exit 1
