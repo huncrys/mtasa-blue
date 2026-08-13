@@ -50,7 +50,9 @@ public:
     bool Save();
 
     const std::string& GetServerName() { return m_strServerName; };
+#ifdef MTA_FORK_SETSERVERNAME
     void               SetServerName(std::string strServerName);
+#endif
     SString            GetServerIP();
     SString            GetServerIPList();
     unsigned short     GetServerPort();

@@ -119,5 +119,7 @@ void CLuaFunctionDefs::LoadFunctions()
     // Restricted functions
     CLuaCFunctions::AddFunction("setServerConfigSetting", CLuaFunctionDefs::SetServerConfigSetting, true);
     CLuaCFunctions::AddFunction("shutdown", ArgumentParserWarn<false, CLuaFunctionDefs::Shutdown>, true);
+#ifdef MTA_FORK_SETSERVERNAME
     CLuaCFunctions::AddFunction("setServerName", CLuaFunctionDefs::SetServerName, true);
+#endif
 }

@@ -677,7 +677,9 @@ public:
     static bool        RemoveRuleValue(const char* szKey);
     static bool        GetPlayerAnnounceValue(CElement* pElement, const std::string& strKey, std::string& strOutValue);
     static bool        SetPlayerAnnounceValue(CElement* pElement, const std::string& strKey, const std::string& strValue);
+#ifdef MTA_FORK_SETSERVERNAME
     static bool        SetServerName(const std::string strServerName);
+#endif
 
     // Registry funcs
     static const std::string& SQLGetLastError();
