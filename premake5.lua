@@ -316,9 +316,13 @@ workspace "MTASA"
 		include "vendor/cpp-httplib"
 		include "vendor/google-breakpad"
 		include "vendor/json-c"
-		include "vendor/lua"
+		-- Only one of the two VMs is ever linked. vendor/lua also carries the
+		-- Lua_Client project, but the client is Windows-only and LUA_VM is forced to
+		-- stock there, so gating on the VM never starves the client build.
 		if LUA_VM == "jit" then
 			include "vendor/luajit"
+		else
+			include "vendor/lua"
 		end
 		include "vendor/mbedtls"
 		include "vendor/pcre2"
