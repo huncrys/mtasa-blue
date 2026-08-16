@@ -143,8 +143,11 @@ int CLuaDefs::CheckFunctionRights(lua_CFunction f, lua_State* luaVM, CResource& 
     if (!resource.IsActive())
         return false;
 
-    // Update execution time check
-    resource.GetVirtualMachine()->CheckExecutionTime();
+    // Update execution time check. Take the VM from the state rather than from the
+    // resource: CResource::m_pVM is only assigned once CreateVirtualMachine returns, so
+    // it is still null for anything called while CLuaMain::Initialize runs, whereas the
+    // owner stored at lua_open time is valid for the whole life of the VM.
+    lua_getownercluamain(luaVM).CheckExecutionTime();
 
     // Check function right cache in resource
     bool bAllowed;
