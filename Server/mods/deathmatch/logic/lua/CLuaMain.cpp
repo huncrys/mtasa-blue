@@ -209,19 +209,6 @@ void CLuaMain::Initialize()
     // as global_State::mainthref.
     m_luaVM = lua_open(this);
 
-#ifdef MTA_FUNCTION_ACL_WRAPPER
-    // Route every externally registered C function through the ACL check. This is
-    // LuaJIT's stand-in for the patched Lua 5.1 pre-call hook: the VM calls
-    // wrapf(L, f) instead of f(L) straight from its assembly, so no wrapper closure
-    // is involved. Only bc_cfunc_ext is affected, leaving LuaJIT's own built-ins on
-    // the normal path.
-    lua_pushlightuserdata(m_luaVM, reinterpret_cast<void*>(CLuaDefs::CallWithACLCheck));
-
-    if (!luaJIT_setmode(m_luaVM, -1, LUAJIT_MODE_WRAPCFUNC | LUAJIT_MODE_ON))
-        CLogger::ErrorPrintf("Failed to install the Lua function rights hook - acl.xml function rights will not be enforced\n");
-
-    lua_pop(m_luaVM, 1);
-#endif
     m_pLuaManager->OnLuaMainOpenVM(this, m_luaVM);
 
     // Set the instruction count hook
@@ -271,6 +258,27 @@ void CLuaMain::Initialize()
     luaopen_debug(m_luaVM);
     luaopen_utf8(m_luaVM);
     luaopen_os(m_luaVM);
+#endif
+
+#ifdef MTA_FUNCTION_ACL_WRAPPER
+    // Route every externally registered C function through the ACL check. This is
+    // LuaJIT's stand-in for the patched Lua 5.1 pre-call hook: the VM calls
+    // wrapf(L, f) instead of f(L) straight from its assembly, so no wrapper closure
+    // is involved. Only bc_cfunc_ext is affected, leaving LuaJIT's own built-ins on
+    // the normal path.
+    //
+    // This goes after the libraries are opened, not before: unlike upstream, which
+    // calls luaopen_* directly, the calls above go through the VM, so an earlier hook
+    // would run the rights check against luaopen_base and friends. That is not just
+    // wasted work - it fires the debug hooks and caches LuaJIT's own function pointers
+    // in the resource's rights cache, for calls that are VM construction rather than
+    // anything a script asked for.
+    lua_pushlightuserdata(m_luaVM, reinterpret_cast<void*>(CLuaDefs::CallWithACLCheck));
+
+    if (!luaJIT_setmode(m_luaVM, -1, LUAJIT_MODE_WRAPCFUNC | LUAJIT_MODE_ON))
+        CLogger::ErrorPrintf("Failed to install the Lua function rights hook - acl.xml function rights will not be enforced\n");
+
+    lua_pop(m_luaVM, 1);
 #endif
 
     // Initialize security restrictions. Very important to prevent lua trojans and viruses!
