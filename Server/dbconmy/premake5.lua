@@ -56,10 +56,16 @@ project "Dbconmy"
 	-- Always link libmysqlclient statically on Linux: distributions have moved to
 	-- MariaDB, so libmysqlclient.so.21 (and its versioned symbols) is not
 	-- available at runtime on a modern base image. OpenSSL stays dynamic.
+	--
+	-- The static archive carries no dependency information, so every library it
+	-- needs has to be named here. zstd is the easy one to miss: MySQL 8 uses it for
+	-- protocol compression, and because this is a shared library the linker leaves
+	-- ZSTD_* undefined without complaint - it only surfaces as a dlopen failure
+	-- when the server loads dbconmy.so.
 	filter "system:linux"
 		buildoptions { "-pthread" }
 		linkoptions { "-l:libmysqlclient.a", "-pthread", "-lssl", "-lcrypto" }
-		links { "z", "dl", "m" }
+		links { "z", "zstd", "dl", "m" }
 	filter { "system:linux", "platforms:x86" }
 		libdirs { "/usr/lib32/mysql" }
 	filter { "system:linux", "platforms:x64" }
