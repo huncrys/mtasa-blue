@@ -101,7 +101,7 @@ upload:
   tags:
     - platform:any
   rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_BRANCH && $CI_COMMIT_REF_PROTECTED == "true"
 
 release:
   stage: release
@@ -137,7 +137,7 @@ release:
   tags:
     - platform:any
   rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_BRANCH && $CI_COMMIT_REF_PROTECTED == "true"
 
 generate index:
   stage: index
@@ -162,4 +162,4 @@ generate index:
   tags:
     - platform:any
   rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_BRANCH && $CI_COMMIT_REF_PROTECTED == "true"
