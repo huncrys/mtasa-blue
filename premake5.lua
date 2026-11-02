@@ -179,6 +179,13 @@ workspace "MTASA"
 			libdirs { "/compat/x64" }
 	end
 
+	-- The fork's CI builds with GCC 15, whose libstdc++ is newer than what server
+	-- distributions ship (GLIBCXX_3.4.34), so link the C++ runtime statically on
+	-- every Linux platform. Upstream does the same, but only for x64 GLIBC_COMPAT
+	-- builds in its own docker image.
+	filter "system:linux"
+		linkoptions "-static-libstdc++ -static-libgcc"
+
 	filter "platforms:x86"
 		architecture "x86"
 	filter "platforms:x64"
