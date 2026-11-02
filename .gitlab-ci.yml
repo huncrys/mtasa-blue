@@ -19,7 +19,7 @@ build:
     entrypoint: [""]
   parallel:
     matrix:
-      - TARGET_PLATFORM: [linux/386, linux/amd64, linux/arm/v7, linux/arm64]
+      - TARGET_PLATFORM: [linux/amd64, linux/arm/v7, linux/arm64]
   artifacts:
     paths:
       - packages
@@ -27,7 +27,6 @@ build:
     - |-
       set -e
       case "$TARGET_PLATFORM" in
-        linux/386)    ARCH=x86;   NET_MODULE=net;       NET_DIR="${OUTPUT_DIR}";       PACKAGE_SUFFIX=       ;;
         linux/amd64)  ARCH=x64;   NET_MODULE=net_64;    NET_DIR="${OUTPUT_DIR}/x64";   PACKAGE_SUFFIX=_x64   ;;
         linux/arm/v7) ARCH=arm;   NET_MODULE=net_arm;   NET_DIR="${OUTPUT_DIR}/arm";   PACKAGE_SUFFIX=_arm   ;;
         linux/arm64)  ARCH=arm64; NET_MODULE=net_arm64; NET_DIR="${OUTPUT_DIR}/arm64"; PACKAGE_SUFFIX=_arm64 ;;
